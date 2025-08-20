@@ -1,0 +1,41 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.tfplan
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Node modules
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Helm
+charts/*.tgz
+
+# Kubernetes
+kubeconfig*
+
+# AWS
+.aws/credentials
