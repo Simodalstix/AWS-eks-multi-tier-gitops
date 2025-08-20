@@ -11,7 +11,10 @@ command -v aws >/dev/null 2>&1 || { echo "❌ AWS CLI is required but not instal
 # Check AWS credentials
 aws sts get-caller-identity >/dev/null 2>&1 || { echo "❌ AWS credentials not configured. Run 'aws configure' first." >&2; exit 1; }
 
-cd infrastructure
+# Get script directory and navigate to project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_ROOT/infrastructure"
 
 # Initialize Terraform
 echo "📦 Initializing Terraform..."

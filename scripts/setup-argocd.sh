@@ -30,10 +30,14 @@ helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-contro
   --set serviceAccount.create=false \
   --set serviceAccount.name=aws-load-balancer-controller
 
+# Get script directory and navigate to project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
 # Apply ArgoCD projects and applications
 echo "🎯 Deploying ArgoCD applications..."
-kubectl apply -f argocd/projects/
-kubectl apply -f argocd/applications/
+kubectl apply -f "$PROJECT_ROOT/argocd/projects/"
+kubectl apply -f "$PROJECT_ROOT/argocd/applications/"
 
 # Get ArgoCD admin password
 echo "🔑 Getting ArgoCD admin password..."

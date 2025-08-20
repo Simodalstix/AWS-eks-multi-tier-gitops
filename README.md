@@ -2,7 +2,7 @@
 
 A production-ready EKS deployment showcasing AWS best practices, GitOps workflows, and comprehensive monitoring.
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
@@ -17,7 +17,7 @@ A production-ready EKS deployment showcasing AWS best practices, GitOps workflow
                                            └─────────────────┘
 ```
 
-## 🚀 Features
+## Features
 
 - **Infrastructure as Code**: Terraform for EKS cluster provisioning
 - **GitOps Deployment**: ArgoCD for automated application deployment
@@ -28,7 +28,7 @@ A production-ready EKS deployment showcasing AWS best practices, GitOps workflow
 - **Security**: RBAC, Network Policies, and AWS IAM integration
 - **Cost Optimization**: Spot instances and resource right-sizing
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ├── infrastructure/          # Terraform IaC
@@ -39,7 +39,7 @@ A production-ready EKS deployment showcasing AWS best practices, GitOps workflow
 └── docs/                   # Documentation
 ```
 
-## 🛠️ Technologies
+## Technologies
 
 - **Infrastructure**: Terraform, AWS EKS, VPC, IAM
 - **Container Orchestration**: Kubernetes, Helm
@@ -48,7 +48,7 @@ A production-ready EKS deployment showcasing AWS best practices, GitOps workflow
 - **Applications**: React, Node.js, PostgreSQL
 - **CI/CD**: GitHub Actions
 
-## 📋 Prerequisites
+## Prerequisites
 
 - AWS CLI configured with appropriate permissions
 - Terraform >= 1.0
@@ -56,7 +56,7 @@ A production-ready EKS deployment showcasing AWS best practices, GitOps workflow
 - Helm >= 3.0
 - Docker
 
-## 🚀 Quick Start
+## Quick Start
 
 1. **Deploy Infrastructure**
    ```bash
@@ -77,7 +77,7 @@ A production-ready EKS deployment showcasing AWS best practices, GitOps workflow
    kubectl apply -f argocd/applications/
    ```
 
-## 📊 Monitoring
+## Monitoring
 
 Access Grafana dashboard at: `http://grafana.your-domain.com`
 
@@ -86,7 +86,7 @@ Default dashboards include:
 - Application performance metrics
 - Cost monitoring and optimization insights
 
-## 🔒 Security Features
+## Security Features
 
 - RBAC with least privilege access
 - Network policies for pod-to-pod communication
@@ -94,14 +94,14 @@ Default dashboards include:
 - Secrets management with AWS Secrets Manager
 - Container image scanning
 
-## 💰 Cost Optimization
+## Cost Optimization
 
 - Spot instances for non-critical workloads
 - Cluster autoscaler for dynamic scaling
 - Resource requests and limits optimization
 - Scheduled scaling for predictable workloads
 
-## 📚 Learning Outcomes
+## Learning Outcomes
 
 This project demonstrates:
 - Modern cloud-native application deployment

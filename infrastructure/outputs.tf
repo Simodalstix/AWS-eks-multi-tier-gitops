@@ -59,6 +59,11 @@ output "cluster_autoscaler_role_arn" {
 }
 
 # Configuration for kubectl
+output "aws_region" {
+  description = "AWS region where resources are deployed"
+  value       = var.aws_region
+}
+
 output "configure_kubectl" {
   description = "Configure kubectl: make sure you're logged in with the correct AWS profile and run the following command to update your kubeconfig"
   value       = "aws eks --region ${var.aws_region} update-kubeconfig --name ${module.eks.cluster_name}"

@@ -5,6 +5,7 @@
 .terraform.lock.hcl
 terraform.tfvars
 *.tfplan
+tfplan
 
 # IDE
 .vscode/
@@ -36,6 +37,7 @@ charts/*.tgz
 
 # Kubernetes
 kubeconfig*
+kubectl*
 
 # AWS
 .aws/credentials
