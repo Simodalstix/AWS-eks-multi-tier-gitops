@@ -1,0 +1,28 @@
+# Copy this file to terraform.tfvars and customize the values
+
+# AWS Configuration
+aws_region = "ap-southeast-2"
+
+# Project Configuration
+project_name = "eks-portfolio"
+environment  = "dev"
+owner        = "your-name"
+
+# EKS Configuration
+cluster_version = "1.28"
+
+# VPC Configuration
+vpc_cidr           = "10.0.0.0/16"
+enable_nat_gateway = true
+single_nat_gateway = true  # Set to false for production
+
+# Node Group Configuration
+node_group_instance_types = ["t3.medium"]
+node_group_scaling_config = {
+  desired_size = 2
+  max_size     = 4
+  min_size     = 1
+}
+
+# Cost Optimization
+enable_spot_instances = true  # Set to false for production workloads
