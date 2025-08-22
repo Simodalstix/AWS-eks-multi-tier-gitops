@@ -4,18 +4,8 @@ A production-ready EKS deployment showcasing AWS best practices, GitOps workflow
 
 ## Architecture
 
-```
-┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
-│   Git Repo      │───▶│   ArgoCD     │───▶│   EKS Cluster   │
-│ (Helm Charts)   │    │ (GitOps)     │    │  Multi-AZ       │
-└─────────────────┘    └──────────────┘    └─────────────────┘
-                                                    │
-                                           ┌─────────────────┐
-                                           │  Monitoring     │
-                                           │ Prometheus +    │
-                                           │   Grafana       │
-                                           └─────────────────┘
-```
+![Architecture Diagram](./docs/eks-gitops-gp-diagram.svg)
+_Architecture diagram created using AWS official icons and Excalidraw_
 
 ## Features
 
@@ -59,6 +49,7 @@ A production-ready EKS deployment showcasing AWS best practices, GitOps workflow
 ## Quick Start
 
 1. **Deploy Infrastructure**
+
    ```bash
    cd infrastructure
    terraform init
@@ -67,6 +58,7 @@ A production-ready EKS deployment showcasing AWS best practices, GitOps workflow
    ```
 
 2. **Install ArgoCD**
+
    ```bash
    kubectl create namespace argocd
    kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
@@ -82,6 +74,7 @@ A production-ready EKS deployment showcasing AWS best practices, GitOps workflow
 Access Grafana dashboard at: `http://grafana.your-domain.com`
 
 Default dashboards include:
+
 - Cluster overview and resource utilization
 - Application performance metrics
 - Cost monitoring and optimization insights
@@ -104,6 +97,7 @@ Default dashboards include:
 ## Learning Outcomes
 
 This project demonstrates:
+
 - Modern cloud-native application deployment
 - Infrastructure as Code best practices
 - GitOps workflow implementation
