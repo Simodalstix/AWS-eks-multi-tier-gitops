@@ -18,7 +18,7 @@ spec:
     - repoURL: https://prometheus-community.github.io/helm-charts
       chart: kube-prometheus-stack
       targetRevision: 51.2.0
-    - repoURL: https://github.com/your-username/eks-portfolio
+    - repoURL: https://github.com/Simodalstix/AWS-eks-multi-tier-gitops
       targetRevision: HEAD
       ref: values
   destination:

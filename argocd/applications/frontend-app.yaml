@@ -8,7 +8,7 @@ metadata:
 spec:
   project: portfolio-project
   source:
-    repoURL: https://github.com/your-username/eks-portfolio
+    repoURL: https://github.com/Simodalstix/AWS-eks-multi-tier-gitops
     targetRevision: HEAD
     path: helm-charts/frontend
     helm:

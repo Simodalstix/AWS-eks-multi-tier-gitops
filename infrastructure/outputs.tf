@@ -68,3 +68,25 @@ output "configure_kubectl" {
   description = "Configure kubectl: make sure you're logged in with the correct AWS profile and run the following command to update your kubeconfig"
   value       = "aws eks --region ${var.aws_region} update-kubeconfig --name ${module.eks.cluster_name}"
 }
+
+# ECR Repository URLs
+output "ecr_frontend_repository_url" {
+  description = "URL of the ECR repository for frontend"
+  value       = aws_ecr_repository.frontend.repository_url
+}
+
+output "ecr_backend_repository_url" {
+  description = "URL of the ECR repository for backend"
+  value       = aws_ecr_repository.backend.repository_url
+}
+
+# ArgoCD Access Instructions
+output "argocd_access" {
+  description = "Instructions to access ArgoCD GUI"
+  value = {
+    port_forward = "kubectl port-forward svc/argocd-server -n argocd 8080:443"
+    url          = "https://localhost:8080"
+    username     = "admin"
+    password_cmd = "kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
+  }
+}

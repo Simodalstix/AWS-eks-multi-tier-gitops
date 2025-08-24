@@ -5,13 +5,13 @@ metadata:
   namespace: argocd
 spec:
   description: Portfolio EKS project applications
-  
+
   sourceRepos:
-    - 'https://github.com/your-username/eks-portfolio'
-    - 'https://charts.bitnami.com/bitnami'
-    - 'https://prometheus-community.github.io/helm-charts'
-    - 'https://grafana.github.io/helm-charts'
-  
+    - "https://github.com/Simodalstix/AWS-eks-multi-tier-gitops"
+    - "https://charts.bitnami.com/bitnami"
+    - "https://prometheus-community.github.io/helm-charts"
+    - "https://grafana.github.io/helm-charts"
+
   destinations:
     - namespace: portfolio-apps
       server: https://kubernetes.default.svc
@@ -19,33 +19,33 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: kube-system
       server: https://kubernetes.default.svc
-  
+
   clusterResourceWhitelist:
-    - group: ''
+    - group: ""
       kind: Namespace
-    - group: 'rbac.authorization.k8s.io'
+    - group: "rbac.authorization.k8s.io"
       kind: ClusterRole
-    - group: 'rbac.authorization.k8s.io'
+    - group: "rbac.authorization.k8s.io"
       kind: ClusterRoleBinding
-    - group: 'apiextensions.k8s.io'
+    - group: "apiextensions.k8s.io"
       kind: CustomResourceDefinition
-  
+
   namespaceResourceWhitelist:
-    - group: ''
+    - group: ""
       kind: Service
-    - group: ''
+    - group: ""
       kind: ConfigMap
-    - group: ''
+    - group: ""
       kind: Secret
-    - group: 'apps'
+    - group: "apps"
       kind: Deployment
-    - group: 'apps'
+    - group: "apps"
       kind: StatefulSet
-    - group: 'networking.k8s.io'
+    - group: "networking.k8s.io"
       kind: Ingress
-    - group: 'autoscaling'
+    - group: "autoscaling"
       kind: HorizontalPodAutoscaler
-  
+
   roles:
     - name: admin
       description: Admin access to portfolio project
