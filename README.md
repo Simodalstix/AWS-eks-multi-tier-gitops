@@ -1,12 +1,12 @@
 # Enterprise EKS Multi-Tier Application with GitOps
 
-[![Terraform](https://img.shields.io/badge/Terraform-1.0+-623CE4?logo=terraform)](https://www.terraform.io/)
+[![Terraform](https://img.shields.io/badge/Terraform-1.6+-623CE4?logo=terraform)](https://www.terraform.io/)
 [![AWS](https://img.shields.io/badge/AWS-EKS-FF9900?logo=amazon-aws)](https://aws.amazon.com/eks/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Simodalstix/AWS-eks-multi-tier-gitops?include_prereleases)](https://github.com/Simodalstix/AWS-eks-multi-tier-gitops/releases)
 [![Build Status](https://github.com/Simodalstix/AWS-eks-multi-tier-gitops/workflows/Terraform%20Validate/badge.svg)](https://github.com/Simodalstix/AWS-eks-multi-tier-gitops/actions)
 
-A production-ready EKS deployment showcasing AWS best practices, GitOps workflows, and comprehensive monitoring.
+Production-ready Terraform infrastructure for EKS with GitOps, showcasing AWS best practices and enterprise deployment patterns.
 
 ## What's Provisioned
 
@@ -43,12 +43,12 @@ _Architecture diagram created using AWS official icons and Excalidraw_
 ## Project Structure
 
 ```
-├── infrastructure/          # Terraform IaC
-├── helm-charts/            # Application Helm charts
+├── infrastructure/          # Terraform IaC for EKS cluster
+├── helm-charts/            # Kubernetes application templates
 ├── argocd/                 # GitOps configuration
 ├── monitoring/             # Prometheus & Grafana setup
-├── applications/           # Source code for demo apps
-└── docs/                   # Documentation
+├── scripts/                # Deployment automation
+└── docs/                   # Architecture & deployment guides
 ```
 
 ## Technologies
