@@ -1,6 +1,6 @@
 # VPC Module
 module "vpc" {
-  source = "terraform-aws-modules/vpc/aws"
+  source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.0"
 
   name = "${local.cluster_name}-vpc"
@@ -22,12 +22,12 @@ module "vpc" {
 
   # Tags for EKS
   public_subnet_tags = {
-    "kubernetes.io/role/elb" = "1"
+    "kubernetes.io/role/elb"                      = "1"
     "kubernetes.io/cluster/${local.cluster_name}" = "owned"
   }
 
   private_subnet_tags = {
-    "kubernetes.io/role/internal-elb" = "1"
+    "kubernetes.io/role/internal-elb"             = "1"
     "kubernetes.io/cluster/${local.cluster_name}" = "owned"
   }
 

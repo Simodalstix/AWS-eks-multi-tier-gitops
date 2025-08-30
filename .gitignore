@@ -2,10 +2,11 @@
 *.tfstate
 *.tfstate.*
 .terraform/
-.terraform.lock.hcl
+# Keep .terraform.lock.hcl for version consistency
 terraform.tfvars
 *.tfplan
 tfplan
+*.out
 
 # IDE
 .vscode/

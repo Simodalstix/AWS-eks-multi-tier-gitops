@@ -1,10 +1,32 @@
 # Enterprise EKS Multi-Tier Application with GitOps
 
+[![Terraform](https://img.shields.io/badge/Terraform-1.0+-623CE4?logo=terraform)](https://www.terraform.io/)
+[![AWS](https://img.shields.io/badge/AWS-EKS-FF9900?logo=amazon-aws)](https://aws.amazon.com/eks/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/Simodalstix/AWS-eks-multi-tier-gitops?include_prereleases)](https://github.com/Simodalstix/AWS-eks-multi-tier-gitops/releases)
+[![Build Status](https://github.com/Simodalstix/AWS-eks-multi-tier-gitops/workflows/Terraform%20Validate/badge.svg)](https://github.com/Simodalstix/AWS-eks-multi-tier-gitops/actions)
+
 A production-ready EKS deployment showcasing AWS best practices, GitOps workflows, and comprehensive monitoring.
+
+## What's Provisioned
+
+**AWS Infrastructure:**
+- VPC with public/private subnets across 3 AZs
+- EKS cluster with managed node groups (spot instances)
+- Application Load Balancer with target-type: ip
+- ECR repositories for container images
+- IAM roles with IRSA for service accounts
+- NAT Gateway for private subnet internet access
+
+**Kubernetes Stack:**
+- ArgoCD for GitOps deployment
+- AWS Load Balancer Controller
+- Cluster Autoscaler
+- Prometheus & Grafana monitoring
 
 ## Architecture
 
-![Architecture Diagram](./docs/eks-gitops-gp-diagram.svg)
+![Architecture Diagram](./diagrams/eks-gitops-gp-diagram3.svg)
 _Architecture diagram created using AWS official icons and Excalidraw_
 
 ## Features
@@ -48,26 +70,42 @@ _Architecture diagram created using AWS official icons and Excalidraw_
 
 ## Quick Start
 
-1. **Deploy Infrastructure**
+### 1. Configure Variables
+```bash
+cp infrastructure/terraform.tfvars.example infrastructure/terraform.tfvars
+# Edit with your values: region, project name, owner
+```
 
-   ```bash
-   cd infrastructure
-   terraform init
-   terraform plan
-   terraform apply
-   ```
+### 2. Deploy Infrastructure
+```bash
+cd infrastructure
+terraform init
+terraform plan
+terraform apply
+```
 
-2. **Install ArgoCD**
+### 3. Setup GitOps
+```bash
+# Configure kubectl
+aws eks update-kubeconfig --region ap-southeast-2 --name eks-portfolio-dev
 
-   ```bash
-   kubectl create namespace argocd
-   kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-   ```
+# Run setup script
+./scripts/setup-argocd.sh
+```
 
-3. **Deploy Applications via GitOps**
-   ```bash
-   kubectl apply -f argocd/applications/
-   ```
+### Remote State (Production)
+For production deployments, configure S3 backend:
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "your-terraform-state-bucket"
+    key            = "eks-project/terraform.tfstate"
+    region         = "ap-southeast-2"
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
+  }
+}
+```
 
 ## Monitoring
 
@@ -94,10 +132,41 @@ Default dashboards include:
 - Resource requests and limits optimization
 - Scheduled scaling for predictable workloads
 
+## Deployment Considerations
+
+**Region & Costs:**
+- Default region: `ap-southeast-2` (Sydney)
+- Estimated cost: ~$150-200/month (EKS cluster + EC2 nodes + ALB)
+- Spot instances enabled for 60-90% cost savings
+- Single NAT Gateway for cost optimization
+
+**IAM & Security:**
+- Least privilege IAM roles via IRSA
+- Private subnets for worker nodes
+- Network policies for pod-to-pod communication
+- Container image scanning enabled
+
+**Tagging Strategy:**
+```hcl
+default_tags = {
+  Project     = "eks-portfolio"
+  Environment = "dev"
+  ManagedBy   = "Terraform"
+  Owner       = "your-name"
+}
+```
+
+## Why This Matters
+
+- **Resilience**: Multi-AZ deployment with auto-scaling
+- **Cost Control**: Spot instances, right-sizing, lifecycle policies
+- **Observability**: Comprehensive monitoring and logging
+- **Security**: Network isolation, RBAC, secrets management
+- **Automation**: GitOps workflow reduces manual errors
+
 ## Learning Outcomes
 
 This project demonstrates:
-
 - Modern cloud-native application deployment
 - Infrastructure as Code best practices
 - GitOps workflow implementation
@@ -107,5 +176,5 @@ This project demonstrates:
 
 ---
 
-**Author**: [Your Name]  
+**License**: MIT  
 **Purpose**: Portfolio project showcasing enterprise EKS deployment patterns

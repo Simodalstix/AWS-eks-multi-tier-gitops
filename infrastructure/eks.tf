@@ -1,6 +1,6 @@
 # EKS Cluster
 module "eks" {
-  source = "terraform-aws-modules/eks/aws"
+  source  = "terraform-aws-modules/eks/aws"
   version = "~> 20.0"
 
   cluster_name    = local.cluster_name
@@ -50,7 +50,7 @@ module "eks" {
 
 # IRSA for AWS Load Balancer Controller
 module "load_balancer_controller_irsa_role" {
-  source = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "~> 5.0"
 
   role_name = "${local.cluster_name}-aws-load-balancer-controller"
@@ -69,7 +69,7 @@ module "load_balancer_controller_irsa_role" {
 
 # IRSA for EBS CSI Driver
 module "ebs_csi_irsa_role" {
-  source = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "~> 5.0"
 
   role_name = "${local.cluster_name}-ebs-csi-driver"
@@ -88,7 +88,7 @@ module "ebs_csi_irsa_role" {
 
 # IRSA for Cluster Autoscaler
 module "cluster_autoscaler_irsa_role" {
-  source = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "~> 5.0"
 
   role_name = "${local.cluster_name}-cluster-autoscaler"
