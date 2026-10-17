@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EKS Troubleshooting Spine</title>
+<style>
+:root {
+  --bg: #111418;
+  --surface: #181C21;
+  --surface2: #14181C;
+  --line: #2A3038;
+  --text: #F5F2EC;
+  --bright: #FAF8F3;
+  --muted: #A9B6C2;
+  --sand: #D4903A;
+  --teal: #3DB8A0;
+  --purple: #B49CF0;
+  --bad: #F08A70;
+  --warn: #FCD34D;
+  --code: #E8E4DC;
+  --mono: "DejaVu Sans Mono", "Cascadia Mono", Consolas, "Liberation Mono", monospace;
+  --sans: "DM Sans", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--text); }
+body {
+  font: 13px/1.32 var(--sans);
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: 6px 16px;
+  gap: 6px;
+}
+code, .mono { font-family: var(--mono); font-size: 13px; }
+
+/* Top strip */
+.strip {
+  display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+  padding: 5px 10px; white-space: nowrap;
+}
+.strip .lbl { font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--sand); }
+.strip b { color: var(--bright); font-weight: 600; }
+.arrow { color: var(--sand); font-weight: 700; }
+.chips { display: flex; gap: 8px; margin-left: auto; }
+.chip { border: 1px solid var(--bad); border-radius: 5px; padding: 1px 7px; }
+.chip b, .ak b { color: var(--bad); font-weight: 700; }
+
+/* Commands */
+.cmd { display: block; }
+.cmd code { user-select: all; color: var(--code); overflow-wrap: anywhere; }
+.cmd code::before { content: "$ "; color: var(--muted); user-select: none; }
+.strip .cmd { display: inline; }
+.v { user-select: none; font: 600 11.5px/1 var(--sans); padding: 1px 4px; border-radius: 3px; margin-left: 4px; white-space: nowrap; vertical-align: 1px; }
+.v.uv { color: var(--warn); border: 1px dashed var(--warn); }
+.v.nc { color: var(--muted); border: 1px solid var(--muted); }
+.v.ran { color: var(--teal); border: 1px solid var(--teal); }
+.note { color: var(--muted); }
+.in { color: var(--purple); font-weight: 700; user-select: none; }
+
+/* Layout */
+.wrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 10px; min-height: 0; }
+.spine {
+  display: grid;
+  grid-template-columns: 172px 128px minmax(0, 1fr) 236px 280px;
+  grid-template-rows: auto repeat(8, auto);
+  align-content: stretch;
+  border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+}
+.spine > div, .spine > ul { padding: 5px 8px; border-top: 1px solid var(--line); min-width: 0; }
+.spine > .h {
+  border-top: 0; background: var(--surface); font-weight: 700; font-size: 12.5px;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--muted); align-self: stretch;
+}
+.spine > .h.stop { color: var(--sand); text-transform: none; letter-spacing: 0; font-size: 13.5px; }
+.spine > .odd { background: var(--surface2); }
+
+/* Spine line, numbers and arrows */
+.layer { position: relative; padding-left: 40px !important; }
+.layer::before { content: ""; position: absolute; left: 19px; top: 0; bottom: 0; width: 2px; background: var(--sand); }
+.layer.first::before { top: 16px; }
+.layer.last::before { bottom: auto; height: 16px; }
+.layer:not(.last)::after {
+  content: ""; position: absolute; left: 14px; bottom: -1px; z-index: 2;
+  border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid var(--sand);
+}
+.num {
+  position: absolute; left: 7px; top: 5px; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--bg); border: 2px solid var(--sand); color: var(--bright);
+  font-weight: 700; font-size: 13.5px; display: grid; place-items: center; z-index: 1;
+}
+.layer .name { overflow-wrap: anywhere; font-weight: 700; color: var(--bright); font-size: 14px; line-height: 1.25; display: block; margin-top: 2px; }
+.tag { display: inline-block; font: 600 12px/1.2 var(--mono); padding: 1px 3px; border-radius: 3px; margin: 4px 3px 0 0; }
+.t-aws { color: var(--sand); border: 1px solid var(--sand); }
+.t-k { color: var(--teal); border: 1px solid var(--teal); }
+.t-node { color: var(--purple); border: 1px solid var(--purple); }
+.q { font-size: 14px; color: var(--bright); }
+ul.ok, ul.fail { list-style: none; }
+.ok li, .fail li { padding-left: 10px; position: relative; }
+.ok li::before, .fail li::before { content: ""; position: absolute; left: 0; top: .55em; width: 5px; height: 5px; border-radius: 50%; }
+.ok li::before { background: var(--teal); }
+.fail li::before { background: var(--bad); }
+.go { color: var(--sand); font-weight: 700; white-space: nowrap; }
+
+/* Right column */
+aside { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+.panel h2 { font-size: 12.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--sand); margin-bottom: 2px; }
+.states { width: 100%; border-collapse: collapse; }
+.states td { vertical-align: top; padding: 1px 0; border-top: 1px solid var(--line); }
+.states td:first-child { font-weight: 700; color: var(--bright); width: 92px; padding-right: 6px; }
+.states tr:first-child td { border-top: 0; }
+.ak .cmd { margin-bottom: 2px; }
+.kv { display: grid; grid-template-columns: 84px minmax(0, 1fr); column-gap: 6px; }
+.kv dt { color: var(--muted); }
+.kv dd { overflow-wrap: anywhere; }
+.legend li { list-style: none; margin-top: 1px; }
+
+@media (max-width: 1700px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); }
+  aside { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: start; }
+  .spine { grid-template-columns: 150px 120px minmax(0, 1fr) 210px 240px; }
+  .strip { white-space: normal; }
+  .chips { margin-left: 0; flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+
+<header class="strip">
+  <span class="lbl">Where I run commands</span>
+  <b>laptop / WSL</b>
+  <span class="arrow">→</span>
+  <b>kubeconfig</b>
+  <span class="arrow">→</span>
+  <b>aws eks get-token (IAM)</b>
+  <span class="arrow">→</span>
+  <b>EKS API endpoint</b><span class="note">public access on</span>
+  <span class="chips">
+    <span class="chip"><b>Unauthorized</b> IAM or access entry</span>
+    <span class="chip"><b>Forbidden</b> RBAC</span>
+    <span class="chip"><b>timeout</b> endpoint access or network</span>
+  </span>
+</header>
+
+<div class="wrap">
+<main class="spine">
+  <div class="h stop">↓ stop at the first failing layer</div>
+  <div class="h">Question</div>
+  <div class="h">Check</div>
+  <div class="h">Healthy looks like</div>
+  <div class="h">Failure points to</div>
+
+  <!-- 1 -->
+  <div class="layer first"><span class="num">1</span><span class="name">DNS and TLS</span><span class="tag t-k">[kubectl]</span></div>
+  <div class="q">Name resolves to the ALB? ALB answers?</div>
+  <div>
+    <span class="cmd"><code>ALB=$(kubectl -n portfolio-apps get ingress frontend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'); echo $ALB</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>dig +short $ALB</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>curl -sv -o /dev/null -H 'Host: frontend.local' http://$ALB/</code><i class="v uv">unverified</i></span>
+  </div>
+  <ul class="ok">
+    <li>$ALB: *.elb.amazonaws.com</li>
+    <li>dig: 2+ public IPs</li>
+    <li>curl: <span class="mono">HTTP/1.1 200 OK</span></li>
+    <li>no TLS in repo: HTTP :80 only</li>
+    <li>frontend.local: Host header only</li>
+  </ul>
+  <ul class="fail">
+    <li>$ALB empty: not reconciled <span class="go">→ 3</span></li>
+    <li>NXDOMAIN: ALB gone, DNS lag</li>
+    <li>connect timeout: ALB SG or scheme</li>
+    <li>404 without Host header: host rule</li>
+    <li>502 / 503 / 504 <span class="go">→ 2</span></li>
+  </ul>
+
+  <!-- 2 -->
+  <div class="layer odd"><span class="num">2</span><span class="name">Load balancer and target health</span><span class="tag t-aws">[AWS CLI]</span></div>
+  <div class="q odd">ALB has healthy targets?</div>
+  <div class="odd">
+    <span class="cmd"><code>LB=$(aws elbv2 describe-load-balancers --query "LoadBalancers[?DNSName=='$ALB'].LoadBalancerArn" --output text)</code><i class="v nc">no cluster</i></span>
+    <span class="cmd"><code>TG=$(aws elbv2 describe-target-groups --load-balancer-arn $LB --query 'TargetGroups[0].TargetGroupArn' --output text)</code><i class="v nc">no cluster</i></span>
+    <span class="cmd"><code>aws elbv2 describe-target-health --target-group-arn $TG</code><i class="v nc">no cluster</i></span>
+    <span class="cmd"><code>kubectl -n portfolio-apps get targetgroupbindings</code><i class="v uv">unverified</i></span>
+  </div>
+  <ul class="ok odd">
+    <li>$LB and $TG: one ARN each</li>
+    <li><span class="mono">healthy</span> per Ready pod IP:80</li>
+    <li>2+ targets (HPA min 2)</li>
+    <li>health check GET / (annotation)</li>
+  </ul>
+  <ul class="fail odd">
+    <li>503, no targets: no Ready pods <span class="go">→ 4</span></li>
+    <li>ResponseCodeMismatch: / not 200 <span class="go">→ 6</span></li>
+    <li>Target.Timeout: SG to pod :80, pod hung</li>
+    <li>draining: pods terminating</li>
+  </ul>
+
+  <!-- 3 -->
+  <div class="layer"><span class="num">3</span><span class="name">Ingress</span><span class="tag t-k">[kubectl]</span></div>
+  <div class="q">LB controller built the ALB from the Ingress?</div>
+  <div>
+    <span class="cmd"><code>kubectl -n portfolio-apps describe ingress frontend</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>kubectl -n kube-system get deploy aws-load-balancer-controller</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>kubectl -n kube-system logs deploy/aws-load-balancer-controller --tail=50</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>kubectl -n argocd get application frontend</code><i class="v uv">unverified</i></span>
+  </div>
+  <ul class="ok">
+    <li>class alb, Address set</li>
+    <li>event SuccessfullyReconciled</li>
+    <li>controller READY n/n</li>
+    <li>Argo: Synced, Healthy</li>
+  </ul>
+  <ul class="fail">
+    <li>no Address: FailedBuildModel / FailedDeployModel</li>
+    <li>controller not ready: SA, IRSA <span class="go">→ 8</span></li>
+    <li>no subnet tag kubernetes.io/role/elb</li>
+    <li>Argo OutOfSync / Degraded</li>
+  </ul>
+
+  <!-- 4 -->
+  <div class="layer odd"><span class="num">4</span><span class="name">Service and EndpointSlices</span><span class="tag t-k">[kubectl]</span></div>
+  <div class="q odd">Service selects Ready pods?</div>
+  <div class="odd">
+    <span class="cmd"><code>kubectl -n portfolio-apps get svc frontend</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>kubectl -n portfolio-apps get endpointslices -l kubernetes.io/service-name=frontend</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>kubectl -n portfolio-apps port-forward svc/frontend 8080:80</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>curl -sI http://localhost:8080/</code><i class="v uv">unverified</i> <span class="note">second terminal</span></span>
+  </div>
+  <ul class="ok odd">
+    <li>ClusterIP, port 80 → http</li>
+    <li>ENDPOINTS: one IP per Ready pod</li>
+    <li>port-forward curl 200: pod serves</li>
+  </ul>
+  <ul class="fail odd">
+    <li>ENDPOINTS empty: selector matches no Ready pod <span class="go">→ 5</span></li>
+    <li>port-forward 200, ALB fails <span class="go">→ 2, 3</span></li>
+    <li>port-forward refused <span class="go">→ 5, 6</span></li>
+  </ul>
+
+  <!-- 5 -->
+  <div class="layer"><span class="num">5</span><span class="name">Pod status and events</span><span class="tag t-k">[kubectl]</span></div>
+  <div class="q">Pods Running, Ready, not restarting?</div>
+  <div>
+    <span class="cmd"><code>kubectl -n portfolio-apps get pods -o wide</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>POD=$(kubectl -n portfolio-apps get pods -o name | head -1)</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>kubectl -n portfolio-apps describe $POD | tail -25</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>kubectl -n portfolio-apps get events --sort-by=.lastTimestamp | tail -20</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>kubectl -n portfolio-apps get hpa frontend</code><i class="v uv">unverified</i></span>
+  </div>
+  <ul class="ok">
+    <li>READY 1/1, Running, RESTARTS 0</li>
+    <li>2 to 10 pods (HPA)</li>
+    <li>no Warning events</li>
+    <li>HPA TARGETS: a %</li>
+  </ul>
+  <ul class="fail">
+    <li>STATUS: pod state table</li>
+    <li>FailedScheduling <span class="go">→ 7</span></li>
+    <li>Unhealthy (probe) <span class="go">→ 6</span></li>
+    <li>HPA &lt;unknown&gt;: metrics-server not Ready in kube-system</li>
+  </ul>
+
+  <!-- 6 -->
+  <div class="layer odd"><span class="num">6</span><span class="name">Container logs and exit code</span><span class="tag t-k">[kubectl]</span></div>
+  <div class="q odd">What did the container say before it died?</div>
+  <div class="odd">
+    <span class="cmd"><code>kubectl -n portfolio-apps logs $POD --tail=50</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>kubectl -n portfolio-apps logs $POD --previous --tail=50</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>kubectl -n portfolio-apps get $POD -o jsonpath='{range .status.containerStatuses[*]}{.name} restarts={.restartCount} last={.lastState.terminated.reason}/{.lastState.terminated.exitCode}{"\n"}{end}'</code><i class="v uv">unverified</i></span>
+  </div>
+  <ul class="ok odd">
+    <li>nginx access lines, 200 for GET /</li>
+    <li>--previous: container not found</li>
+    <li>restarts=0 last=/</li>
+  </ul>
+  <ul class="fail odd">
+    <li>exit 1: app or config error, read log</li>
+    <li>137 + OOMKilled: over 256Mi limit</li>
+    <li>137, no OOM: SIGKILL after grace period</li>
+    <li>143: SIGTERM; nginx [emerg]: config</li>
+  </ul>
+
+  <!-- 7 -->
+  <div class="layer"><span class="num">7</span><span class="name">Node conditions and capacity</span><span class="tag t-k">[kubectl]</span></div>
+  <div class="q">Node healthy, with room for the pod?</div>
+  <div>
+    <span class="cmd"><code>kubectl get nodes -L eks.amazonaws.com/capacityType</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>NODE=$(kubectl -n portfolio-apps get $POD -o jsonpath='{.spec.nodeName}')</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>kubectl describe node $NODE | grep -A9 -E '^(Conditions|Allocated)'</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>kubectl describe node $NODE | grep 'Non-terminated Pods'</code><i class="v uv">unverified</i></span>
+  </div>
+  <ul class="ok">
+    <li>Ready, capacityType SPOT</li>
+    <li>Memory/Disk/PIDPressure False</li>
+    <li>requests below allocatable</li>
+    <li>pods per node under 17 (t3.medium)</li>
+  </ul>
+  <ul class="fail">
+    <li>NotReady / Unknown <span class="go">→ 8</span></li>
+    <li>DiskPressure: 50Gi root volume <span class="go">→ 8</span></li>
+    <li>Too many pods, Insufficient cpu: 4 nodes max, cluster-autoscaler logs</li>
+    <li>node gone: Spot reclaim <span class="go">→ 8</span></li>
+  </ul>
+
+  <!-- 8 -->
+  <div class="layer odd last"><span class="num">8</span><span class="name">Node OS and AWS layer</span><span class="tag t-node">[node shell]</span><span class="tag t-aws">[AWS CLI]</span></div>
+  <div class="q odd">Node OS, kubelet, IAM, or an AWS change?</div>
+  <div class="odd">
+    <span class="cmd"><code>aws ec2 describe-instances --filters Name=tag:eks:cluster-name,Values=eks-portfolio-dev --query 'Reservations[].Instances[].[InstanceId,State.Name,InstanceLifecycle]'</code><i class="v nc">no cluster</i></span>
+    <span class="cmd"><code>kubectl debug node/$NODE -it --profile=sysadmin --image=busybox -- chroot /host</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>aws ssm start-session --target &lt;instance-id&gt;</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><span class="in">node </span><code>systemctl is-active kubelet containerd; df -h /</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><span class="in">node </span><code>sudo journalctl -u kubelet -u containerd -n 60 --no-pager</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><span class="in">node </span><code>sudo dmesg -T | grep -iE 'oom|killed process'</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>aws eks describe-nodegroup --cluster-name eks-portfolio-dev --nodegroup-name &lt;nodegroup&gt; --query nodegroup.health</code><i class="v nc">no cluster</i></span>
+    <span class="cmd"><code>kubectl -n kube-system describe sa aws-load-balancer-controller</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><code>aws cloudtrail lookup-events --lookup-attributes AttributeKey=EventSource,AttributeValue=eks.amazonaws.com --max-results 20 --query 'Events[].[EventTime,EventName,Username]' --output table</code><i class="v ran">ran</i></span>
+  </div>
+  <ul class="ok odd">
+    <li>instances running, lifecycle spot</li>
+    <li>active, active; / under 85%</li>
+    <li>kubelet log: no repeating errors</li>
+    <li>dmesg: no oom-kill</li>
+    <li>health.issues empty</li>
+    <li>SA role-arn: eks-portfolio-dev-aws-load-balancer-controller</li>
+  </ul>
+  <ul class="fail odd">
+    <li>SSM fails: node role policy (eks.tf), NAT egress</li>
+    <li>kubelet errors: node role, API reach</li>
+    <li>containerd errors: image pull, disk</li>
+    <li>NodeCreationFailure, AsgInstanceLaunchFailures</li>
+    <li>SA without role-arn <span class="go">→ 3</span></li>
+    <li>CloudTrail: AWS API calls only, not kubectl</li>
+  </ul>
+</main>
+
+<aside>
+  <section class="panel">
+    <h2>Pod state → meaning</h2>
+    <table class="states">
+      <tr><td>Pending</td><td>unschedulable: cpu/memory, 17 pods/node, taint, PVC <span class="go">→ 7</span></td></tr>
+      <tr><td>ImagePull­BackOff</td><td>bad image or tag, registry auth, rate limit, no NAT</td></tr>
+      <tr><td>CrashLoop­BackOff</td><td>container keeps exiting, backoff to 5 min <span class="go">→ 6</span></td></tr>
+      <tr><td>OOMKilled 137</td><td>over 256Mi limit, SIGKILL <span class="go">→ 6</span>; node-wide <span class="go">→ 8</span></td></tr>
+      <tr><td>Running, not Ready</td><td>readiness GET / failing: out of endpoints, ALB <span class="go">→ 4, 6</span></td></tr>
+      <tr><td>Terminating</td><td>stuck: finalizers or node unreachable <span class="go">→ 7</span></td></tr>
+      <tr><td>Evicted</td><td>node disk or memory pressure <span class="go">→ 7</span></td></tr>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>Drills</h2>
+    <p>runbooks/ not in repo. None indexed.</p>
+  </section>
+
+  <section class="panel ak">
+    <h2>API access checks</h2>
+    <span class="cmd"><code>aws eks update-kubeconfig --name eks-portfolio-dev</code><i class="v nc">no cluster</i></span>
+    <span class="cmd"><code>aws sts get-caller-identity</code><i class="v ran">ran</i></span>
+    <span class="cmd"><b>Unauthorized</b> <code>aws eks list-access-entries --cluster-name eks-portfolio-dev</code><i class="v nc">no cluster</i></span>
+    <span class="cmd"><b>Forbidden</b> <code>kubectl auth can-i --list -n portfolio-apps</code><i class="v uv">unverified</i></span>
+    <span class="cmd"><b>timeout</b> <code>aws eks describe-cluster --name eks-portfolio-dev --query cluster.resourcesVpcConfig</code><i class="v nc">no cluster</i></span>
+  </section>
+
+  <section class="panel">
+    <h2>Names in this repo</h2>
+    <dl class="kv">
+      <dt>cluster</dt><dd class="mono">eks-portfolio-dev</dd>
+      <dt>region</dt><dd class="mono">ap-southeast-2</dd>
+      <dt>app ns</dt><dd class="mono">portfolio-apps</dd>
+      <dt>objects</dt><dd>deploy, svc, ing, hpa <span class="mono">frontend</span></dd>
+      <dt>selector</dt><dd class="mono">app.kubernetes.io/instance=frontend</dd>
+      <dt>container</dt><dd><span class="mono">frontend</span>, port http 80</dd>
+      <dt>host</dt><dd class="mono">frontend.local</dd>
+      <dt>controller</dt><dd class="mono">kube-system/aws-load-balancer-controller</dd>
+      <dt>node group</dt><dd><span class="mono">main</span> prefix, t3.medium SPOT, 1 to 4</dd>
+    </dl>
+  </section>
+
+  <section class="panel">
+    <h2>Command marks</h2>
+    <ul class="legend">
+      <li><i class="v ran">ran</i> real output 2026-10-17 <i class="v uv">unverified</i> not run</li>
+      <li><i class="v nc">no cluster</i> ran, args accepted, no resource</li>
+      <li class="note">$ALB $LB $TG $POD $NODE set in rows 1, 2, 5, 7</li>
+    </ul>
+  </section>
+</aside>
+</div>
+
+</body>
+</html>
