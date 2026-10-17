@@ -42,7 +42,7 @@
 ### Infrastructure Layer
 - **Terraform**: Infrastructure as Code
 - **VPC**: Multi-AZ deployment across 3 availability zones
-- **EKS Cluster**: Kubernetes 1.28 with managed node groups
+- **EKS Cluster**: Kubernetes 1.35 with managed node groups
 - **Security Groups**: Least privilege network access
 
 ### Application Layer

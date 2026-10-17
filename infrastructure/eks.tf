@@ -13,6 +13,8 @@ module "eks" {
   # EKS Managed Node Groups
   eks_managed_node_groups = {
     main = {
+      # AL2 AMIs are not published for Kubernetes 1.33 and later
+      ami_type       = "AL2023_x86_64_STANDARD"
       instance_types = var.node_group_instance_types
       capacity_type  = var.enable_spot_instances ? "SPOT" : "ON_DEMAND"
 
@@ -37,6 +39,11 @@ module "eks" {
       }
 
       taints = {}
+
+      # Session Manager access to nodes without SSH
+      iam_role_additional_policies = {
+        AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      }
 
       tags = local.common_tags
     }
@@ -104,4 +111,23 @@ module "cluster_autoscaler_irsa_role" {
   }
 
   tags = local.common_tags
+}
+
+# Cluster Autoscaler discovery tags on the node group ASG. The chart discovers
+# ASGs by the k8s.io/cluster-autoscaler tags; the IRSA policy above only allows
+# scaling ASGs tagged kubernetes.io/cluster/<name> = owned.
+resource "aws_autoscaling_group_tag" "cluster_autoscaler" {
+  for_each = {
+    "k8s.io/cluster-autoscaler/enabled"               = "true"
+    "k8s.io/cluster-autoscaler/${local.cluster_name}" = "owned"
+    "kubernetes.io/cluster/${local.cluster_name}"     = "owned"
+  }
+
+  autoscaling_group_name = one(module.eks.eks_managed_node_groups["main"].node_group_autoscaling_group_names)
+
+  tag {
+    key                 = each.key
+    value               = each.value
+    propagate_at_launch = false
+  }
 }

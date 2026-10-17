@@ -20,8 +20,11 @@ Production-ready Terraform infrastructure for EKS with GitOps, showcasing AWS be
 
 **Kubernetes Stack:**
 - ArgoCD for GitOps deployment
-- AWS Load Balancer Controller
-- Cluster Autoscaler
+- AWS Load Balancer Controller (Helm, IRSA)
+- metrics-server (Helm), the resource metrics source for the HPA
+- Cluster Autoscaler (Helm, IRSA), scaling the managed node group within its
+  1 to 4 node limits; it finds the ASG by the `k8s.io/cluster-autoscaler` tags
+  set in `infrastructure/eks.tf`
 - Prometheus & Grafana monitoring
 
 ## Architecture
@@ -92,6 +95,13 @@ aws eks update-kubeconfig --region ap-southeast-2 --name eks-portfolio-dev
 # Run setup script
 ./scripts/setup-argocd.sh
 ```
+
+The script reads the cluster name, region, VPC ID and IRSA role ARNs from
+`terraform output`, so run it on the machine that holds the Terraform state. It
+creates the `aws-load-balancer-controller` and `cluster-autoscaler` service
+accounts in `kube-system`, installs the AWS Load Balancer Controller,
+metrics-server and Cluster Autoscaler at pinned chart versions, then applies the
+Argo CD project and applications.
 
 ### Remote State (Production)
 For production deployments, configure S3 backend:

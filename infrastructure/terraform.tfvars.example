@@ -9,7 +9,7 @@ environment  = "dev"
 owner        = "your-name"
 
 # EKS Configuration
-cluster_version = "1.28"
+cluster_version = "1.35"
 
 # VPC Configuration
 vpc_cidr           = "10.0.0.0/16"
