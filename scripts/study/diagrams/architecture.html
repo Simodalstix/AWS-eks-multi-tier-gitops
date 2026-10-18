@@ -1,0 +1,53 @@
+<div class="arch">
+  <div class="arch-top">
+    <div class="nd nd-ext"><span class="t">Users</span><span class="s">HTTP to the ALB</span></div>
+    <div class="nd nd-ext"><span class="t">Laptop</span><span class="s">terraform, <code>setup-argocd.sh</code>, kubectl to the public endpoint</span></div>
+    <div class="nd nd-ext"><span class="t">GitHub</span><span class="s">repo pulled by Argo CD; Actions validate Terraform</span></div>
+    <span class="region">Region ap-southeast-2</span>
+  </div>
+  <div class="arch-main">
+    <div class="lane lane-vpc"><span class="lane-h">VPC 10.0.0.0/16, IGW, flow logs to CloudWatch</span>
+      <div class="azs">
+        <div class="az"><span class="az-h">ap-southeast-2a</span>
+          <div class="sn sn-pub"><span class="sn-h">public 10.0.64.0/20</span><span class="it it-nat">NAT gateway + EIP (the only one)</span><span class="it it-rt">ALB node, created by LB controller</span></div>
+          <div class="sn sn-priv"><span class="sn-h">private 10.0.0.0/20</span><span class="it">worker node(s)</span><span class="it it-dim">egress via NAT in 2a</span></div>
+        </div>
+        <div class="az"><span class="az-h">ap-southeast-2b</span>
+          <div class="sn sn-pub"><span class="sn-h">public 10.0.80.0/20</span><span class="it it-rt">ALB node, created by LB controller</span></div>
+          <div class="sn sn-priv"><span class="sn-h">private 10.0.16.0/20</span><span class="it">worker node(s)</span><span class="it it-dim">egress via NAT in 2a</span></div>
+        </div>
+        <div class="az"><span class="az-h">ap-southeast-2c</span>
+          <div class="sn sn-pub"><span class="sn-h">public 10.0.96.0/20</span><span class="it it-rt">ALB node, created by LB controller</span></div>
+          <div class="sn sn-priv"><span class="sn-h">private 10.0.32.0/20</span><span class="it">worker node(s)</span><span class="it it-dim">egress via NAT in 2a</span></div>
+        </div>
+      </div>
+      <p class="cap">Node group <code>main</code>: t3.medium Spot, AL2023, 1 to 4 (2 at start) across the 3 private subnets. Each node: kubelet, containerd. Private egress: 0.0.0.0/0 to the NAT gateway in 2a, then IGW: image pulls (Docker Hub, registry.k8s.io, ECR) and AWS APIs. No VPC endpoints in the repo.</p>
+      <div class="ns-band"><span class="ns-band-h">Pods on those nodes, by namespace</span>
+        <div class="ns"><span class="ns-h">kube-system</span><span class="it it-irsa">aws-load-balancer-controller</span><span class="it it-irsa">cluster-autoscaler</span><span class="it">metrics-server</span><span class="it it-dim">coredns, aws-node, kube-proxy (EKS bootstrap add-ons)</span></div>
+        <div class="ns"><span class="ns-h">argocd</span><span class="it">argocd-server, repo-server, application-controller</span><span class="it it-dim">applicationset, notifications, dex, redis</span></div>
+        <div class="ns"><span class="ns-h">portfolio-apps</span><span class="it">frontend: Deployment, Service, Ingress, HPA</span><span class="it it-dim">nginx:alpine placeholder</span></div>
+        <div class="ns"><span class="ns-h">monitoring</span><span class="it">Prometheus, Alertmanager, Grafana</span><span class="it it-dim">kube-state-metrics, node-exporter; no volumes</span></div>
+      </div>
+    </div>
+    <div class="arch-side">
+      <div class="lane lane-aws"><span class="lane-h">EKS control plane, AWS-managed</span>
+        <span class="it">API server, etcd, scheduler, controller-manager</span>
+        <span class="it">Kubernetes 1.35; endpoint public and private</span>
+        <span class="it">Secrets encrypted with a KMS key</span>
+        <span class="it it-dim">Logs api, audit, authenticator to CloudWatch, 90 days</span>
+      </div>
+      <div class="lane lane-iam"><span class="lane-h">IAM</span>
+        <span class="it">OIDC provider for IRSA</span>
+        <span class="it it-irsa">role to kube-system/aws-load-balancer-controller</span>
+        <span class="it it-irsa">role to kube-system/cluster-autoscaler</span>
+        <span class="it it-dim">role to ebs-csi-controller-sa: driver not installed</span>
+        <span class="it">node role: worker, CNI, ECR read-only, SSM</span>
+      </div>
+      <div class="lane lane-local"><span class="lane-h">Other AWS</span>
+        <span class="it">ECR eks-portfolio/frontend, backend: unused</span>
+        <span class="it">CloudWatch Logs: EKS, VPC flow logs</span>
+      </div>
+    </div>
+  </div>
+  <p class="cap legend"><span class="it it-irsa">IRSA</span> uses an IAM role <span class="it it-rt">runtime</span> created by a controller, not Terraform <span class="it it-dim">dim</span> defaults or unused</p>
+</div>

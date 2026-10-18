@@ -1,0 +1,27 @@
+<div class="dg-row dg-req">
+  <div class="nd nd-ext"><span class="t">Client</span><span class="s"><code>curl -H 'Host: frontend.local'</code></span></div>
+  <div class="ar"><span>lookup</span></div>
+  <div class="nd"><b class="num">1</b><span class="t">DNS</span><span class="s"><code>*.elb.amazonaws.com</code>, no Route 53</span><i class="sp">L1</i></div>
+  <div class="ar"><span>HTTP :80</span></div>
+  <div class="lane lane-public"><span class="lane-h">Public subnets x3</span>
+    <div class="nd"><b class="num">2</b><span class="t">ALB</span><span class="s">internet-facing, host <code>frontend.local</code>, path <code>/</code></span><i class="sp">L2</i><i class="sp">L3</i></div>
+  </div>
+  <div class="ar"><span>forward</span></div>
+  <div class="nd"><b class="num">3</b><span class="t">Target group</span><span class="s"><code>target-type: ip</code>: pod IPs, health <code>GET /</code></span><i class="sp">L2</i></div>
+  <div class="ar ar-hot"><span>straight to<br>pod IP</span></div>
+  <div class="lane lane-private"><span class="lane-h">Private subnets</span>
+    <div class="nd"><b class="num">5</b><span class="t">Pods <code>frontend</code></span><span class="s">nginx :80, VPC IPs</span><i class="sp">L5</i><i class="sp">L6</i></div>
+    <div class="nd nd-sub"><b class="num">6</b><span class="t">Node</span><span class="s">t3.medium Spot, kubelet</span><i class="sp">L7</i><i class="sp">L8</i></div>
+  </div>
+</div>
+<div class="dg-row dg-req-ctl">
+  <span class="row-h">Control loop, not in the data path</span>
+  <div class="nd nd-ctl"><span class="t">Ingress <code>frontend</code></span><span class="s">class <code>alb</code>, from <code>values.yaml</code></span><i class="sp">L3</i></div>
+  <div class="ar ar-watch"><span>watched by</span></div>
+  <div class="nd nd-ctl"><span class="t">LB controller</span><span class="s"><code>kube-system</code>, IRSA role; creates ALB, listener, rule, target group</span></div>
+  <div class="ar ar-watch ar-back"><span>read by</span></div>
+  <div class="nd nd-ctl"><b class="num">4</b><span class="t">EndpointSlice</span><span class="s">Ready pod IPs of Service <code>frontend</code></span><i class="sp">L4</i></div>
+  <div class="ar ar-watch ar-back"><span>slices of</span></div>
+  <div class="nd nd-ctl"><span class="t">Service <code>frontend</code></span><span class="s">ClusterIP :80, selector <code>app.kubernetes.io/instance=frontend</code></span><i class="sp">L4</i></div>
+</div>
+<p class="cap"><i class="sp">L1</i> to <i class="sp">L8</i>: layer rows of <code>docs/troubleshooting-spine.html</code>. Target group and pods: controller registers EndpointSlice IPs as targets.</p>

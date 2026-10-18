@@ -1,0 +1,36 @@
+<div class="dg-lanes">
+  <div class="dg-row"><span class="row-h">App changes, GitOps</span>
+    <div class="nd nd-ext"><span class="t"><code>git push</code></span><span class="s">laptop</span></div>
+    <div class="ar"></div>
+    <div class="nd"><span class="t">GitHub repo</span><span class="s"><code>targetRevision: HEAD</code></span></div>
+    <div class="ar ar-watch"><span>pulled by<br>Argo CD</span></div>
+    <div class="lane lane-node"><span class="lane-h">Cluster, ns argocd</span>
+      <div class="nd"><span class="t">Argo CD v3.5.5</span><span class="s">repo-server renders <code>helm template</code>; application-controller diffs, applies, self-heals</span></div>
+    </div>
+    <div class="ar"></div>
+    <div class="nd"><span class="t">API server</span><span class="s">then the apply path above</span></div>
+    <div class="ar"></div>
+    <div class="nd"><span class="t">Applications</span><span class="s"><code>frontend</code> to portfolio-apps; <code>monitoring</code> (kube-prometheus-stack 51.2.0) to monitoring</span></div>
+  </div>
+  <div class="dg-row"><span class="row-h">Bootstrap, once per cluster</span>
+    <div class="nd nd-ext"><span class="t"><code>setup-argocd.sh</code></span><span class="s">laptop, reads <code>terraform output</code></span></div>
+    <div class="ar"></div>
+    <div class="nd"><span class="t">kubectl and Helm</span><span class="s">Argo CD manifest; Helm: LB controller 3.6.0, metrics-server 3.14.0, Cluster Autoscaler 9.59.0; IRSA service accounts</span></div>
+    <div class="ar"></div>
+    <div class="nd"><span class="t">API server</span><span class="s">controllers run as pods in <code>kube-system</code></span></div>
+  </div>
+  <div class="dg-row"><span class="row-h">Infrastructure</span>
+    <div class="nd nd-ext"><span class="t"><code>terraform apply</code></span><span class="s">laptop, local state</span></div>
+    <div class="ar"></div>
+    <div class="nd"><span class="t">AWS APIs</span><span class="s">ap-southeast-2</span></div>
+    <div class="ar"></div>
+    <div class="nd"><span class="t">AWS resources</span><span class="s">VPC, NAT, EKS, node group, IAM and IRSA roles, ECR, KMS key</span></div>
+  </div>
+  <div class="dg-row"><span class="row-h">CI</span>
+    <div class="nd nd-ext"><span class="t">push or PR</span><span class="s"><code>main</code>, <code>develop</code></span></div>
+    <div class="ar"></div>
+    <div class="nd"><span class="t">GitHub Actions</span><span class="s"><code>terraform fmt -check</code>, <code>init -backend=false</code>, <code>validate</code></span></div>
+    <div class="ar ar-stop"><span>stops</span></div>
+    <div class="nd nd-none"><span class="t">No deploy, no image build</span><span class="s">no AWS or cluster credentials in CI; ECR repositories unused</span></div>
+  </div>
+</div>

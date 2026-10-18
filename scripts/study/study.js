@@ -67,7 +67,8 @@
     if (q.value.trim()) return search();
     var hash = decodeURIComponent(location.hash.slice(1));
     var parts = hash.split('/');
-    var view = $('.view[data-view="' + parts[0] + '"]') && parts[0] !== 'search' ? parts[0] : 'spine';
+    var first = $('.nav a.top').getAttribute('data-view');
+    var view = $('.view[data-view="' + parts[0] + '"]') && parts[0] !== 'search' ? parts[0] : first;
     show(view);
     if (view === 'spine') fitSpine();
     $$('.nav ul a').forEach(function (a) { a.classList.toggle('current', a.getAttribute('data-target') === parts[1]); });

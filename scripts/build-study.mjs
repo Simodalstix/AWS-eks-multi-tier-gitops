@@ -5,7 +5,7 @@
 
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from 'node:fs';
 import { join, dirname, basename, resolve, relative } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SPINE = join(ROOT, 'docs/troubleshooting-spine.html');
@@ -13,6 +13,8 @@ const ADR_DIR = join(ROOT, 'docs/adr');
 const RUNBOOK_DIR = join(ROOT, 'runbooks');
 const NOTES_DIR = join(ROOT, 'docs/notes');
 const LINUX_NOTE = 'linux-map';
+const HOW_NOTE = 'how-it-works';
+const DIAGRAM_DIR = join(ROOT, 'scripts/study/diagrams');
 
 let out = join(ROOT, 'docs/study/index.html');
 let includeTemplates = false;
@@ -51,12 +53,13 @@ const HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/;
 const RULE = /^\s*([-*_])(\s*\1){2,}\s*$/;
 const LIST = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
 const QUOTE = /^\s*>/;
+const DIAGRAM = /^\s*\[diagram:\s*([\w-]+)\]\s*$/;
 const TABLE_SEP = /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$/;
 const indentOf = (l) => l.match(/^\s*/)[0].length;
 const isTable = (lines, i) => lines[i].trim().startsWith('|') && i + 1 < lines.length && TABLE_SEP.test(lines[i + 1]);
 const startsBlock = (lines, i) => {
   const l = lines[i];
-  return FENCE.test(l) || HEADING.test(l) || RULE.test(l) || LIST.test(l) || QUOTE.test(l) || isTable(lines, i);
+  return FENCE.test(l) || HEADING.test(l) || RULE.test(l) || LIST.test(l) || QUOTE.test(l) || DIAGRAM.test(l) || isTable(lines, i);
 };
 
 function cells(line) {
@@ -70,6 +73,34 @@ function codeBlock(code, lang) {
   const attr = lang ? ` data-lang="${esc(lang)}"` : '';
   return `<div class="code"${attr}><button type="button" class="copy">Copy</button><pre><code>${esc(code)}</code></pre></div>`;
 }
+
+// [diagram: name] inlines scripts/study/diagrams/name.mjs (generated: export html(),
+// optionally svg() and svgPath) or, failing that, the hand-written name.html.
+const diagramMods = new Map();
+if (existsSync(DIAGRAM_DIR)) {
+  for (const f of readdirSync(DIAGRAM_DIR).filter((n) => n.endsWith('.mjs')).sort()) {
+    const name = basename(f, '.mjs');
+    diagramMods.set(name, await import(pathToFileURL(join(DIAGRAM_DIR, f)).href));
+    if (existsSync(join(DIAGRAM_DIR, `${name}.html`))) warn(join(DIAGRAM_DIR, `${name}.html`), `shadowed by ${name}.mjs and unused; delete it`);
+  }
+}
+const diagramsUsed = new Set();
+function diagramFile(name) {
+  if (diagramMods.has(name)) { diagramsUsed.add(name); return diagramMods.get(name).html(); }
+  const file = join(DIAGRAM_DIR, `${name}.html`);
+  if (!existsSync(file)) { warn(file, 'not found'); return null; }
+  diagramsUsed.add(name);
+  return readFileSync(file, 'utf8');
+}
+const diagram = (name) => {
+  const html = diagramFile(name);
+  return html === null ? `<p class="missing">Missing diagram: scripts/study/diagrams/${esc(name)}.html</p>` : `<figure class="dg" data-diagram="${esc(name)}">${html}</figure>`;
+};
+const diagramText = (name) => {
+  const file = join(DIAGRAM_DIR, `${name}.html`);
+  const src = diagramMods.has(name) ? diagramMods.get(name).html() : existsSync(file) ? readFileSync(file, 'utf8') : '';
+  return src.replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ');
+};
 
 function table(lines, i) {
   const head = cells(lines[i]);
@@ -151,6 +182,7 @@ function blocks(lines) {
       continue;
     }
     if (RULE.test(line)) { html += '<hr>'; i++; continue; }
+    if ((m = line.match(DIAGRAM))) { html += diagram(m[1]); i++; continue; }
     if (isTable(lines, i)) { const [h, ni] = table(lines, i); html += h; i = ni; continue; }
     if (QUOTE.test(line)) {
       const q = [];
@@ -170,6 +202,7 @@ const md = (text) => blocks(text.replace(/\r\n?/g, '\n').split('\n'));
 
 // Plain text for the search index.
 const plain = (text) => text
+  .replace(new RegExp(DIAGRAM.source, 'gm'), (_, n) => diagramText(n))
   .replace(/^\s*(`{3,}|~{3,}).*$/gm, '')
   .replace(/^\s*\|?\s*:?-{3,}.*$/gm, '')
   .replace(/\\\|/g, '|')
@@ -341,10 +374,13 @@ const spineUnits = spineIndex(spineSrc);
 const adrs = listMd(ADR_DIR);
 const runbooks = listMd(RUNBOOK_DIR, ['README.md']);
 const notes = listMd(NOTES_DIR, ['README.md']);
+const howNotes = notes.filter((d) => d.name === HOW_NOTE);
 const linuxNotes = notes.filter((d) => d.name === LINUX_NOTE);
-const conceptNotes = notes.filter((d) => d.name !== LINUX_NOTE);
+const conceptNotes = notes.filter((d) => d.name !== LINUX_NOTE && d.name !== HOW_NOTE);
+if (!howNotes.length) warn(join(NOTES_DIR, `${HOW_NOTE}.md`), 'not found, How it works is empty');
 if (!linuxNotes.length) warn(join(NOTES_DIR, `${LINUX_NOTE}.md`), 'not found, Linux map is empty');
 
+const howHtml = howNotes.map((d) => renderNote(d, 'how', 'How it works')).join('');
 const adrHtml = adrs.map(renderAdr).join('');
 const rbHtml = runbooks.map(renderRunbook).join('');
 const linuxHtml = linuxNotes.map((d) => renderNote(d, 'linux', 'Linux map')).join('');
@@ -359,6 +395,7 @@ const noteItems = (docs) => docs.flatMap((d) => d.sections.map((s) => ({
   id: domId(`n-${d.name}-${s.slug}`), key: `note:${d.name}#${s.slug}`, label: s.heading,
 })));
 const navGroups = [
+  { view: 'how', label: 'How it works', items: noteItems(howNotes) },
   { view: 'spine', label: 'Spine', items: [] },
   { view: 'adr', label: 'Trade-offs', items: adrs.map((d) => ({ id: domId(`adr-${d.name}`), key: `adr:${d.name}`, label: d.title.replace(/^ADR\s*/i, '') })) },
   { view: 'drills', label: 'Drills', items: runbooks.map((d) => ({ id: domId(`rb-${d.name}`), key: `runbook:${d.name}`, label: d.title.replace(/^Runbook:\s*/i, '') })) },
@@ -397,6 +434,7 @@ ${CSS}
   <p class="built">Built ${built} from ${sourceCount} sources</p>
 </nav>
 <main>
+  <section class="view" data-view="how">${viewHead('How Kubernetes works', 'docs/notes/how-it-works.md, scripts/study/diagrams')}${howHtml || empty('How it works notes', 'docs/notes/README.md')}</section>
   <section class="view" data-view="spine">
     <header class="view-head"><h1>Troubleshooting spine</h1><span class="sub">docs/troubleshooting-spine.html, embedded unchanged</span>
       <div class="ctl"><a class="btn" href="../troubleshooting-spine.html">Open standalone</a>${reviewBox('spine')}</div></header>
@@ -419,10 +457,23 @@ ${JS}
 mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, page);
 
+// SVG copies of generated diagrams (README). Colours from the :root tokens in study.css.
+const tokens = Object.fromEntries([...CSS.match(/:root\s*{[^}]*}/)[0].matchAll(/--([\w-]+):\s*(#[0-9A-Fa-f]{3,8})/g)].map((m) => [m[1], m[2]]));
+const svgsWritten = [];
+for (const [name, mod] of diagramMods) {
+  if (typeof mod.svg !== 'function' || !mod.svgPath) continue;
+  const file = join(ROOT, mod.svgPath);
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, mod.svg(tokens));
+  svgsWritten.push(`${rel(file)} (${name})`);
+}
+
 console.log(`spine     ${rel(SPINE)} (${spineUnits} search units)`);
 console.log(`adr       ${adrs.length} ${adrs.map((d) => basename(d.file)).join(' ')}`);
 console.log(`runbooks  ${runbooks.length} ${runbooks.map((d) => basename(d.file)).join(' ')}`);
 console.log(`notes     ${notes.length} ${notes.map((d) => `${basename(d.file)} (${d.sections.length} sections)`).join(', ')}`);
+console.log(`diagrams  ${diagramsUsed.size} ${[...diagramsUsed].join(' ')}`);
+console.log(`svg       ${svgsWritten.join(', ') || 'none'}`);
 console.log(`index     ${index.length} search units`);
 console.log(`wrote     ${out.startsWith(ROOT) ? rel(out) : out} (${Buffer.byteLength(page)} bytes)`);
 warnings.forEach((w) => console.log(`warning   ${w}`));

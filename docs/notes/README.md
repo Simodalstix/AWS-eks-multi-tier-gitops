@@ -7,6 +7,7 @@
 
 | Path | Page section | One reviewable item per |
 |---|---|---|
+| `docs/notes/how-it-works.md` | How it works (first, default view) | `##` section |
 | `docs/troubleshooting-spine.html` | Spine | the whole page, embedded unchanged |
 | `docs/adr/*.md` | Trade-offs | file (card) |
 | `runbooks/*.md` | Drills | file (card) |
@@ -54,6 +55,9 @@ Six required sections: Detect, Triage, Mitigate, Diagnose, Fix, Postmortem.
 
 - Each `##` section is one block with its own Reviewed checkbox and nav entry.
 - Fragments and tables, not prose. A block should fit on one screen.
+- `[diagram: name]` alone on a line inlines `scripts/study/diagrams/name.html`,
+  a hand-written HTML fragment styled by `scripts/study/study.css`. Its text is
+  searchable. A missing file renders a placeholder and a build warning.
 
 ## Markdown the renderer supports
 
@@ -64,7 +68,7 @@ Six required sections: Detect, Triage, Mitigate, Diagnose, Fix, Postmortem.
 - Fenced code blocks with three backticks. Each gets a Copy button.
 - Inline code, `**bold**`, `*italic*`, `[text](url)`.
 
-Not supported: raw HTML (shown as text), images, footnotes, reference-style
+Not supported: raw HTML (shown as text; use a diagram file), images, footnotes, reference-style
 links, setext (underlined) headings.
 
 ## Build

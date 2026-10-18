@@ -1,0 +1,30 @@
+<div class="dg-row dg-apply">
+  <div class="lane lane-local"><span class="lane-h">Laptop or Argo CD</span>
+    <div class="nd"><b class="num">1</b><span class="t">kubectl</span><span class="s">apply Deployment <code>frontend</code></span></div>
+  </div>
+  <div class="ar"><span>HTTPS<br>EKS token</span></div>
+  <div class="lane lane-aws"><span class="lane-h">EKS control plane, AWS-managed</span>
+    <div class="cp">
+      <div class="nd"><b class="num">2</b><span class="t">API server</span><span class="s">authn, authz, admission, validate</span></div>
+      <div class="ar ar-both"><span>read<br>write</span></div>
+      <div class="nd"><b class="num">3</b><span class="t">etcd</span><span class="s">desired and current state</span></div>
+    </div>
+    <div class="cp cp-loops">
+      <div class="nd"><b class="num">4</b><span class="t">Deployment controller</span><span class="s">Deployment to ReplicaSet</span></div>
+      <div class="nd"><b class="num">5</b><span class="t">ReplicaSet controller</span><span class="s">ReplicaSet to pods</span></div>
+      <div class="nd"><b class="num">6</b><span class="t">scheduler</span><span class="s">pod to node</span></div>
+    </div>
+    <p class="cap">4, 5, 6 watch and write through the API server, never etcd directly</p>
+  </div>
+  <div class="ar ar-watch"><span>watch:<br>my pods</span></div>
+  <div class="lane lane-node"><span class="lane-h">Worker node, private subnet</span>
+    <div class="chain">
+      <div class="nd"><b class="num">7</b><span class="t">kubelet</span><span class="s">starts pod, runs probes</span></div>
+      <div class="ar"><span>CRI</span></div>
+      <div class="nd"><b class="num">8</b><span class="t">containerd</span><span class="s">pull <code>nginx:alpine</code></span></div>
+      <div class="ar"><span>runc</span></div>
+      <div class="nd"><b class="num">9</b><span class="t">container</span><span class="s">nginx :80, Ready</span></div>
+    </div>
+    <p class="cap">status flows back: kubelet reports pod and node status to the API server</p>
+  </div>
+</div>
