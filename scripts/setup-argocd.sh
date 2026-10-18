@@ -25,6 +25,9 @@ CA_ROLE_ARN=$(tf_output cluster_autoscaler_role_arn)
 CONTEXT=$(kubectl config current-context)
 [[ "$CONTEXT" == *"cluster/$CLUSTER_NAME" ]] || { echo "kubectl context '$CONTEXT' is not $CLUSTER_NAME. Run: aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME" >&2; exit 1; }
 
+# Argo CD release (its docs list Kubernetes 1.33 to 1.36 as tested for 3.5)
+ARGOCD_VERSION=v3.5.5
+
 # Pinned chart versions. The Cluster Autoscaler minor version must match the
 # cluster minor version (infrastructure/variables.tf cluster_version).
 LBC_CHART_VERSION=3.6.0
@@ -49,7 +52,8 @@ EOF
 # Install ArgoCD
 echo "📦 Installing ArgoCD..."
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+# Server-side apply: the ApplicationSet CRD is too large for client-side apply
+kubectl apply -n argocd --server-side --force-conflicts -f "https://raw.githubusercontent.com/argoproj/argo-cd/$ARGOCD_VERSION/manifests/install.yaml"
 
 # Wait for ArgoCD to be ready
 echo "⏳ Waiting for ArgoCD to be ready..."
@@ -97,6 +101,15 @@ helm upgrade --install cluster-autoscaler autoscaler/cluster-autoscaler \
   --set rbac.serviceAccount.create=false \
   --set rbac.serviceAccount.name=cluster-autoscaler
 
+# Grafana admin credentials (monitoring/prometheus-values.yaml admin.existingSecret).
+# Generated once; never stored in Git.
+echo "Creating Grafana admin secret..."
+kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n monitoring get secret grafana-admin >/dev/null 2>&1 || \
+  kubectl -n monitoring create secret generic grafana-admin \
+    --from-literal=admin-user=admin \
+    --from-literal=admin-password="$(head -c 24 /dev/urandom | base64 | tr -d '/+=')"
+
 # Apply ArgoCD projects and applications
 echo "🎯 Deploying ArgoCD applications..."
 kubectl apply -f "$PROJECT_ROOT/argocd/projects/"
@@ -110,3 +123,5 @@ echo "✅ ArgoCD setup complete!"
 echo "🌐 Access ArgoCD at: kubectl port-forward svc/argocd-server -n argocd 8080:443"
 echo "👤 Username: admin"
 echo "🔐 Password: $ARGOCD_PASSWORD"
+echo "Grafana: kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80"
+echo "Grafana password: kubectl -n monitoring get secret grafana-admin -o jsonpath='{.data.admin-password}' | base64 -d"

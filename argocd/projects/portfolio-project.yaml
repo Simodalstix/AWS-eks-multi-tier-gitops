@@ -29,6 +29,11 @@ spec:
       kind: ClusterRoleBinding
     - group: "apiextensions.k8s.io"
       kind: CustomResourceDefinition
+    # kube-prometheus-stack admission webhooks
+    - group: "admissionregistration.k8s.io"
+      kind: MutatingWebhookConfiguration
+    - group: "admissionregistration.k8s.io"
+      kind: ValidatingWebhookConfiguration
 
   namespaceResourceWhitelist:
     - group: ""
@@ -45,6 +50,25 @@ spec:
       kind: Ingress
     - group: "autoscaling"
       kind: HorizontalPodAutoscaler
+    # kube-prometheus-stack (monitoring-app.yaml)
+    - group: ""
+      kind: ServiceAccount
+    - group: "apps"
+      kind: DaemonSet
+    - group: "batch"
+      kind: Job
+    - group: "rbac.authorization.k8s.io"
+      kind: Role
+    - group: "rbac.authorization.k8s.io"
+      kind: RoleBinding
+    - group: "monitoring.coreos.com"
+      kind: Prometheus
+    - group: "monitoring.coreos.com"
+      kind: Alertmanager
+    - group: "monitoring.coreos.com"
+      kind: PrometheusRule
+    - group: "monitoring.coreos.com"
+      kind: ServiceMonitor
 
   roles:
     - name: admin

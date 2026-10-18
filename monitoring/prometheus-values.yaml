@@ -1,79 +1,108 @@
-kube-prometheus-stack:
-  fullnameOverride: prometheus
-  
-  prometheus:
-    prometheusSpec:
-      retention: 30d
-      storageSpec:
-        volumeClaimTemplate:
-          spec:
-            storageClassName: gp3
-            accessModes: ["ReadWriteOnce"]
-            resources:
-              requests:
-                storage: 50Gi
-      resources:
-        requests:
-          memory: 2Gi
-          cpu: 1000m
-        limits:
-          memory: 4Gi
-          cpu: 2000m
-  
-  grafana:
-    enabled: true
-    adminPassword: admin123  # Change this in production
-    persistence:
-      enabled: true
-      storageClassName: gp3
-      size: 10Gi
-    
-    ingress:
-      enabled: true
-      ingressClassName: alb
-      annotations:
-        kubernetes.io/ingress.class: alb
-        alb.ingress.kubernetes.io/scheme: internet-facing
-        alb.ingress.kubernetes.io/target-type: ip
-      hosts:
-        - grafana.local
-    
-    dashboardProviders:
-      dashboardproviders.yaml:
-        apiVersion: 1
-        providers:
-        - name: 'default'
-          orgId: 1
-          folder: ''
-          type: file
-          disableDeletion: false
-          editable: true
-          options:
-            path: /var/lib/grafana/dashboards/default
-    
-    dashboards:
-      default:
-        kubernetes-cluster:
-          gnetId: 7249
-          revision: 1
-          datasource: Prometheus
-        kubernetes-pods:
-          gnetId: 6417
-          revision: 1
-          datasource: Prometheus
-        aws-load-balancer:
-          gnetId: 9614
-          revision: 1
-          datasource: Prometheus
-  
-  alertmanager:
-    enabled: true
-    alertmanagerSpec:
-      storage:
-        volumeClaimTemplate:
-          spec:
-            storageClassName: gp3
-            accessModes: ["ReadWriteOnce"]
-            resources:
-              requests:
-                storage: 10Gi
+# Values for kube-prometheus-stack 51.2.0, applied by
+# argocd/applications/monitoring-app.yaml (helm.valueFiles, $values source).
+# Lab settings: no persistent volumes, so no EBS CSI driver or StorageClass is
+# needed. Metrics and alert state are lost when a pod restarts.
+fullnameOverride: prometheus
+
+prometheus:
+  prometheusSpec:
+    retention: 24h
+    # No storageSpec: emptyDir on the node's root volume
+    resources:
+      requests:
+        memory: 1Gi
+        cpu: 250m
+      limits:
+        memory: 2Gi
+
+grafana:
+  enabled: true
+  # Credentials from the grafana-admin Secret created by scripts/setup-argocd.sh.
+  # Read the password: kubectl -n monitoring get secret grafana-admin -o jsonpath='{.data.admin-password}' | base64 -d
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  persistence:
+    enabled: false
+  # Helm test Pod; Argo CD does not run Helm test hooks
+  testFramework:
+    enabled: false
+  # No Ingress: it would be a second internet-facing ALB without TLS. Use kubectl port-forward.
+  ingress:
+    enabled: false
+
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+  dashboards:
+    default:
+      kubernetes-cluster:
+        gnetId: 7249
+        revision: 1
+        datasource: Prometheus
+      kubernetes-pods:
+        gnetId: 6417
+        revision: 1
+        datasource: Prometheus
+      aws-load-balancer:
+        gnetId: 9614
+        revision: 1
+        datasource: Prometheus
+
+alertmanager:
+  enabled: true
+  # No storage: emptyDir
+
+# EKS runs the control plane; controller-manager, scheduler and etcd cannot be
+# scraped from the cluster, and their default alerts would fire permanently.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+# EKS kube-proxy binds metrics to 127.0.0.1 by default (unverified on 1.35)
+kubeProxy:
+  enabled: false
+
+# Symptom-based alerts on top of the chart's default rules. Metrics come from
+# kube-state-metrics. ALB 5xx is not here: ALB metrics are in CloudWatch, and
+# nothing in this repo exports them to Prometheus.
+additionalPrometheusRulesMap:
+  symptoms:
+    groups:
+      - name: symptoms
+        rules:
+          - alert: PodCrashLooping
+            # max_over_time: the waiting reason clears while the container restarts
+            expr: max by (namespace, pod, container) (max_over_time(kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"}[5m])) >= 1
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: '{{ $labels.namespace }}/{{ $labels.pod }} container {{ $labels.container }} is in CrashLoopBackOff'
+          - alert: DeploymentReplicasUnavailable
+            expr: max by (namespace, deployment) (kube_deployment_status_replicas_unavailable) > 0
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: '{{ $labels.namespace }}/{{ $labels.deployment }} has {{ $value }} unavailable replicas'
+          - alert: NodeNotReady
+            expr: max by (node) (kube_node_status_condition{condition="Ready",status="true"}) == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: 'Node {{ $labels.node }} is not Ready'

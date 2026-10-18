@@ -7,17 +7,15 @@ metadata:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: portfolio-project
-  source:
-    repoURL: https://prometheus-community.github.io/helm-charts
-    chart: kube-prometheus-stack
-    targetRevision: 51.2.0
-    helm:
-      valueFiles:
-        - $values/monitoring/prometheus-values.yaml
+  # Multi-source: the chart, plus this repo as $values for the values file.
+  # With sources set, Argo CD ignores a top-level source.
   sources:
     - repoURL: https://prometheus-community.github.io/helm-charts
       chart: kube-prometheus-stack
       targetRevision: 51.2.0
+      helm:
+        valueFiles:
+          - $values/monitoring/prometheus-values.yaml
     - repoURL: https://github.com/Simodalstix/AWS-eks-multi-tier-gitops
       targetRevision: HEAD
       ref: values

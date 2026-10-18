@@ -41,4 +41,8 @@ kubeconfig*
 kubectl*
 
 # AWS
-.aws/credentialsdocs/study/index.html
+.aws/credentials
+
+# Study page build output (scripts/build-study.sh)
+docs/study/
+
