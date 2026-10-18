@@ -3,70 +3,72 @@
 ## High-Level Architecture
 
 ```
-┌─────────────────┐    ┌──────────────┐    ┌─────────────────┐
-│   Developer     │───▶│   Git Repo   │───▶│   ArgoCD        │
-│   Push Code     │    │ (Helm Charts)│    │ (GitOps Agent)  │
-└─────────────────┘    └──────────────┘    └─────────────────┘
-                                                    │
-                                                    ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Developer     │───▶│   Git Repo       │───▶│   Argo CD       │
+│   git push      │    │ (chart, values)  │    │ (pulls, syncs)  │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                                        │
+                                                        ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    EKS Cluster                              │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
-│  │  Frontend   │  │   Backend   │  │     Monitoring      │ │
-│  │  (React)    │  │  (Node.js)  │  │ Prometheus/Grafana  │ │
-│  └─────────────┘  └─────────────┘  └─────────────────────┘ │
+│                    EKS Cluster (1.35)                        │
+│  ┌──────────────────────┐  ┌─────────────────────────────┐   │
+│  │  frontend            │  │  monitoring                 │   │
+│  │  (nginx placeholder) │  │  Prometheus/Grafana         │   │
+│  └──────────────────────┘  └─────────────────────────────┘   │
 │                                                             │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │              AWS Load Balancer Controller               │ │
-│  └─────────────────────────────────────────────────────────┘ │
+│  kube-system: AWS Load Balancer Controller, metrics-server,  │
+│               Cluster Autoscaler (installed by script)       │
 └─────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
                     ┌─────────────────────┐
                     │   Application       │
                     │   Load Balancer     │
+                    │   (HTTP :80)        │
                     └─────────────────────┘
 ```
 
 ## AWS Services Used
 
-- **Amazon EKS**: Managed Kubernetes service
-- **Amazon VPC**: Network isolation with public/private subnets
-- **Amazon EC2**: Worker nodes (spot instances for cost optimization)
-- **AWS IAM**: RBAC and service account roles (IRSA)
-- **AWS Load Balancer Controller**: Ingress management
-- **Amazon EBS**: Persistent storage for monitoring data
+- **Amazon EKS**: managed control plane, one managed node group
+- **Amazon VPC**: public and private subnets in 3 AZs, one NAT gateway, flow logs
+- **Amazon EC2**: t3.medium Spot worker nodes, AL2023
+- **AWS IAM**: node role, IRSA roles for the controllers, EKS access entry for the cluster creator
+- **Elastic Load Balancing**: ALB created by the AWS Load Balancer Controller from the `frontend` Ingress
+- **Amazon ECR**: two repositories, not used by the deployed chart
+- **AWS KMS**: EKS secrets encryption key (module default)
 
 ## Key Components
 
 ### Infrastructure Layer
-- **Terraform**: Infrastructure as Code
-- **VPC**: Multi-AZ deployment across 3 availability zones
-- **EKS Cluster**: Kubernetes 1.35 with managed node groups
-- **Security Groups**: Least privilege network access
+- **Terraform**: VPC, EKS, IAM, ECR; local state
+- **EKS Cluster**: Kubernetes 1.35, managed node group of 1 to 4 nodes
+- **Security Groups**: created by the EKS module
+
+### Bootstrap Layer (`scripts/setup-argocd.sh`)
+- **Argo CD** v3.5.5
+- **AWS Load Balancer Controller**, **metrics-server**, **Cluster Autoscaler** at pinned chart versions
 
 ### Application Layer
-- **Helm Charts**: Templated Kubernetes manifests
-- **ArgoCD**: GitOps continuous deployment
-- **Ingress**: AWS Load Balancer Controller for external access
-- **HPA**: Horizontal Pod Autoscaler for scaling
+- **Helm chart** `helm-charts/frontend`: Deployment, Service, Ingress, HPA, all named `frontend`
+- **Argo CD**: automated sync with `prune` and `selfHeal`
+- **HPA**: 2 to 10 pods at 80% CPU, metrics from metrics-server
 
 ### Monitoring Layer
-- **Prometheus**: Metrics collection and alerting
-- **Grafana**: Visualization and dashboards
-- **AlertManager**: Alert routing and management
+- **kube-prometheus-stack 51.2.0**: Prometheus, Alertmanager, Grafana, node-exporter, kube-state-metrics
+- No persistent storage; 24h retention
+- Alerts: chart defaults plus `PodCrashLooping`, `DeploymentReplicasUnavailable`, `NodeNotReady`
 
 ## Security Features
 
-- **IRSA**: IAM roles for service accounts
-- **Network Policies**: Pod-to-pod communication control
-- **RBAC**: Kubernetes role-based access control
-- **VPC Flow Logs**: Network traffic monitoring
-- **Private Subnets**: Worker nodes in private networks
+- **IRSA**: IAM roles for the controller service accounts
+- **Private Subnets**: worker nodes have no public IPs
+- **VPC Flow Logs**: all traffic to CloudWatch Logs
+- **Argo CD AppProject**: allowed repos, namespaces and resource kinds
+- Not present: network policies, secrets manager integration, TLS
 
-## Cost Optimization
+## Cost Drivers
 
-- **Spot Instances**: Up to 90% cost savings for worker nodes
-- **Single NAT Gateway**: Reduced data transfer costs
-- **Cluster Autoscaler**: Dynamic scaling based on demand
-- **Resource Limits**: Prevent resource waste
+- EKS control plane, one NAT gateway, the ALB, 2 to 4 Spot nodes
+- Single NAT gateway trades AZ resilience for cost
+- Prices and teardown: [COST-OPTIMIZATION.md](COST-OPTIMIZATION.md), [live-session.md](live-session.md)

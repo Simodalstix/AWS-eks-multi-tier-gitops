@@ -1,65 +1,48 @@
-# Cost Optimization Guide
+# Cost Guide
 
-## Current Cost-Saving Measures
+## Cost-Saving Measures in This Repo
 
-### Infrastructure Level
-- **Spot Instances**: 70-90% cost reduction for worker nodes
-- **Single NAT Gateway**: Reduces data transfer costs
-- **GP3 Storage**: Better price/performance than GP2
-- **Right-sized Instances**: t3.medium for development workloads
+- **Spot instances**: managed node group `capacity_type = "SPOT"` (`enable_spot_instances = true`)
+- **Single NAT gateway**: one NAT gateway instead of one per AZ
+- **gp3 root volumes**: 50 GiB per node
+- **Small nodes**: t3.medium
+- **HPA**: 2 to 10 frontend pods on CPU
+- **Cluster Autoscaler**: removes underused nodes down to the node group minimum (1)
+- **ECR lifecycle policies**: keep 10 tagged images, expire untagged after 1 day
+- **No persistent monitoring storage**: no EBS volumes for Prometheus, Alertmanager or Grafana
 
-### Application Level
-- **Resource Limits**: Prevent resource waste
-- **HPA**: Scale down during low usage
-- **Cluster Autoscaler**: Remove unused nodes
+## Hourly Prices (ap-southeast-2)
 
-## Estimated Monthly Costs (ap-southeast-2)
+From the AWS Price List API and spot price history, 2026-10-18. Prices change.
 
-### Development Environment
-- EKS Control Plane: $73 USD
-- 2x t3.medium spot (50% uptime): ~$15 USD
-- NAT Gateway: ~$32 USD
-- EBS Storage (100GB): ~$11 USD
-- **Total: ~$131 USD/month**
+| Item | Price | Count in this stack |
+|---|---|---|
+| EKS control plane (standard support) | $0.10/h | 1 |
+| NAT gateway | $0.059/h + $0.059/GB processed | 1 |
+| Public IPv4 address | $0.005/h | NAT EIP, plus one per ALB subnet |
+| ALB | $0.0252/h + $0.008/LCU-hour | 1, once the Ingress exists |
+| t3.medium Spot | $0.0188 to $0.0201/h | 2 to 4 |
+| t3.medium on-demand, for comparison | $0.0528/h | 0 |
+| gp3 storage | $0.096/GB-month | 50 GiB per node |
+| KMS key | $1/month | 1 |
 
-### Production Optimizations
-- Reserved Instances: 30-60% savings
-- Fargate for batch workloads
-- S3 for log storage instead of EBS
-- CloudWatch cost monitoring
+Rough baseline with 2 nodes and the ALB: about $0.26/h before data transfer,
+LCUs and CloudWatch Logs. Not a quote; check the bill.
 
-## Monitoring Costs
+## Checking Actual Spend
 
-### CloudWatch Dashboard
 ```bash
-# View EKS costs
 aws ce get-cost-and-usage \
-  --time-period Start=2024-01-01,End=2024-01-31 \
-  --granularity MONTHLY \
-  --metrics BlendedCost \
+  --time-period Start=$(date -d '-7 days' +%F),End=$(date +%F) \
+  --granularity DAILY \
+  --metrics UnblendedCost \
   --group-by Type=DIMENSION,Key=SERVICE
 ```
 
-### Cost Alerts
-Set up billing alerts for:
-- Monthly spend > $200
-- Daily spend > $10
-- Unusual usage patterns
+Cost Explorer data lags by up to a day.
 
-## Cleanup Commands
+## Cleanup
 
-### Remove Test Resources
-```bash
-# Delete test pods
-kubectl delete pods --field-selector=status.phase=Succeeded
-
-# Scale down non-essential services
-kubectl scale deployment frontend --replicas=1 -n portfolio-apps
-```
-
-### Full Cleanup
-```bash
-# Destroy infrastructure
-cd infrastructure
-terraform destroy -auto-approve
-```
+Delete the Argo CD applications first, so the AWS Load Balancer Controller
+removes the ALB it created, then destroy. Full order and proof commands:
+[live-session.md](live-session.md).

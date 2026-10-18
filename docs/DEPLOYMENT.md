@@ -1,14 +1,14 @@
 # Deployment Guide
 
-This guide walks you through deploying the EKS portfolio project from scratch.
+Deploys the stack from scratch. For a session with verification, drills and
+teardown proof, use [live-session.md](live-session.md).
 
 ## Prerequisites
 
-- AWS CLI configured with appropriate permissions
+- AWS CLI configured with credentials for the target account
 - Terraform >= 1.0
 - kubectl
 - Helm >= 3.0
-- Docker (for building custom images)
 
 ## Step 1: Configure Variables
 
@@ -35,23 +35,26 @@ chmod +x scripts/deploy-infrastructure.sh
 
 This will:
 - Initialize Terraform
-- Plan the infrastructure changes
-- Deploy EKS cluster, VPC, and IAM roles
+- Plan, then apply after confirmation
+- Create the VPC, EKS cluster, node group, IAM roles and ECR repositories
 - Configure kubectl
 
 ## Step 3: Setup GitOps with ArgoCD
 
-Run the ArgoCD setup script:
+Argo CD reads the chart and values from GitHub, so push any local changes first.
+
 ```bash
 chmod +x scripts/setup-argocd.sh
 ./scripts/setup-argocd.sh
 ```
 
 This will:
-- Install ArgoCD
-- Install AWS Load Balancer Controller
-- Deploy ArgoCD applications
-- Provide access credentials
+- Read cluster name, region, VPC ID and IRSA role ARNs from `terraform output`
+- Install Argo CD v3.5.5
+- Create the IRSA service accounts and install the AWS Load Balancer Controller, metrics-server and Cluster Autoscaler
+- Create the `grafana-admin` secret with a generated password
+- Apply the Argo CD project and the `frontend` and `monitoring` applications
+- Print the Argo CD admin password
 
 ## Step 4: Access Applications
 
@@ -63,19 +66,21 @@ Access at: https://localhost:8080
 
 ### Grafana Dashboard
 ```bash
-kubectl port-forward svc/prometheus-grafana -n monitoring 3000:80
+kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80
+kubectl -n monitoring get secret grafana-admin -o jsonpath='{.data.admin-password}' | base64 -d
 ```
-Access at: http://localhost:3000
+Access at: http://localhost:3000 (user `admin`)
+
+### Frontend
+```bash
+ALB=$(kubectl -n portfolio-apps get ingress frontend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+curl -sI -H 'Host: frontend.local' "http://$ALB/"
+```
 
 ## Step 5: Verify Deployment
 
-Check all pods are running:
 ```bash
 kubectl get pods -A
-```
-
-Check ArgoCD applications:
-```bash
 kubectl get applications -n argocd
 ```
 
@@ -83,32 +88,22 @@ kubectl get applications -n argocd
 
 ### Common Issues
 
-1. **AWS Permissions**: Ensure your AWS user has EKS, EC2, and IAM permissions
-2. **Region Mismatch**: Verify all resources are in ap-southeast-2
-3. **Node Group Issues**: Check if spot instances are available in your AZs
+1. **AWS Permissions**: the Terraform identity needs EKS, EC2, IAM, KMS, CloudWatch Logs and ECR permissions
+2. **Region Mismatch**: verify all resources are in ap-southeast-2
+3. **Node Group Issues**: Spot capacity for t3.medium can be unavailable in an AZ
+4. **Wrong kubectl context**: `setup-argocd.sh` stops if the context is not `eks-portfolio-dev`
 
 ### Useful Commands
 
 ```bash
-# Check cluster status
 kubectl cluster-info
-
-# View EKS cluster
 aws eks describe-cluster --name eks-portfolio-dev --region ap-southeast-2
-
-# Check node status
 kubectl get nodes
-
-# View ArgoCD apps
 kubectl get apps -n argocd
 ```
 
 ## Cleanup
 
-To destroy all resources:
-```bash
-cd infrastructure
-terraform destroy
-```
-
-**Warning**: This will delete all resources and data!
+Delete the Argo CD applications and wait for the ALB to go before
+`terraform destroy`; otherwise the ALB and its security groups are left behind
+and block VPC deletion. Order and commands: [live-session.md](live-session.md), step G.
