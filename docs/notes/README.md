@@ -7,7 +7,8 @@
 
 | Path | Page section | One reviewable item per |
 |---|---|---|
-| `docs/notes/how-it-works.md` | How it works (first, default view) | `##` section |
+| `docs/notes/interview.md` | Interview (first, default view) | `##` section |
+| `docs/notes/how-it-works.md` | How it works | `##` section |
 | `docs/troubleshooting-spine.html` | Spine | the whole page, embedded unchanged |
 | `docs/adr/*.md` | Trade-offs | file (card) |
 | `runbooks/*.md` | Drills | file (card) |
@@ -55,6 +56,8 @@ Six required sections: Detect, Triage, Mitigate, Diagnose, Fix, Postmortem.
 
 - Each `##` section is one block with its own Reviewed checkbox and nav entry.
 - Fragments and tables, not prose. A block should fit on one screen.
+- A table whose last header is `Answer` gets a Cover answers toggle; click a
+  covered cell to reveal it.
 - `[diagram: name]` alone on a line inlines `scripts/study/diagrams/name.html`,
   a hand-written HTML fragment styled by `scripts/study/study.css`. Its text is
   searchable. A missing file renders a placeholder and a build warning.

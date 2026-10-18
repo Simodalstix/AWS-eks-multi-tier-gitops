@@ -61,7 +61,11 @@
   var q = $('#q');
   function show(view) {
     $$('.view').forEach(function (v) { v.classList.toggle('on', v.getAttribute('data-view') === view); });
-    $$('.nav a.top').forEach(function (a) { a.classList.toggle('active', a.getAttribute('data-view') === view); });
+    $$('.nav a.top').forEach(function (a) {
+      var on = a.getAttribute('data-view') === view;
+      a.classList.toggle('active', on);
+      a.parentNode.classList.toggle('open', on);
+    });
   }
   function route() {
     if (q.value.trim()) return search();
@@ -193,6 +197,18 @@
       $$('.card', all.closest('.view')).forEach(function (c) { setCover(c, on); });
       return;
     }
+    var qa = t.closest('.cover-qa');
+    if (qa) {
+      var cov = qa.getAttribute('aria-pressed') !== 'true';
+      qa.setAttribute('aria-pressed', String(cov));
+      qa.textContent = cov ? 'Show answers' : 'Cover answers';
+      var view = qa.closest('.view');
+      view.classList.toggle('qa-covered', cov);
+      $$('table.qa td.shown', view).forEach(function (td) { td.classList.remove('shown'); });
+      return;
+    }
+    var ans = t.closest('.qa-covered table.qa td:last-child');
+    if (ans) { ans.classList.toggle('shown'); return; }
     var veil = t.closest('.veil');
     if (veil) { veil.closest('.coverable').classList.add('revealed'); return; }
     var hit = t.closest('.hit');

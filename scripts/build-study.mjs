@@ -14,6 +14,7 @@ const RUNBOOK_DIR = join(ROOT, 'runbooks');
 const NOTES_DIR = join(ROOT, 'docs/notes');
 const LINUX_NOTE = 'linux-map';
 const HOW_NOTE = 'how-it-works';
+const INTERVIEW_NOTE = 'interview';
 const DIAGRAM_DIR = join(ROOT, 'scripts/study/diagrams');
 
 let out = join(ROOT, 'docs/study/index.html');
@@ -109,7 +110,8 @@ function table(lines, i) {
   i += 2;
   while (i < lines.length && lines[i].trim().startsWith('|')) rows.push(cells(lines[i++]));
   const td = (tag, c, j) => `<${tag}${align[j] ? ` style="text-align:${align[j]}"` : ''}>${inline(c)}</${tag}>`;
-  const html = `<div class="tbl"><table><thead><tr>${head.map((c, j) => td('th', c, j)).join('')}</tr></thead>`
+  const qa = norm(head[head.length - 1]) === 'answer' ? ' class="qa"' : '';
+  const html = `<div class="tbl"><table${qa}><thead><tr>${head.map((c, j) => td('th', c, j)).join('')}</tr></thead>`
     + `<tbody>${rows.map((r) => `<tr>${head.map((_, j) => td('td', r[j] ?? '', j)).join('')}</tr>`).join('')}</tbody></table></div>`;
   return [html, i];
 }
@@ -374,12 +376,14 @@ const spineUnits = spineIndex(spineSrc);
 const adrs = listMd(ADR_DIR);
 const runbooks = listMd(RUNBOOK_DIR, ['README.md']);
 const notes = listMd(NOTES_DIR, ['README.md']);
+const interviewNotes = notes.filter((d) => d.name === INTERVIEW_NOTE);
 const howNotes = notes.filter((d) => d.name === HOW_NOTE);
 const linuxNotes = notes.filter((d) => d.name === LINUX_NOTE);
-const conceptNotes = notes.filter((d) => d.name !== LINUX_NOTE && d.name !== HOW_NOTE);
+const conceptNotes = notes.filter((d) => ![LINUX_NOTE, HOW_NOTE, INTERVIEW_NOTE].includes(d.name));
 if (!howNotes.length) warn(join(NOTES_DIR, `${HOW_NOTE}.md`), 'not found, How it works is empty');
 if (!linuxNotes.length) warn(join(NOTES_DIR, `${LINUX_NOTE}.md`), 'not found, Linux map is empty');
 
+const interviewHtml = interviewNotes.map((d) => renderNote(d, 'interview', 'Interview')).join('');
 const howHtml = howNotes.map((d) => renderNote(d, 'how', 'How it works')).join('');
 const adrHtml = adrs.map(renderAdr).join('');
 const rbHtml = runbooks.map(renderRunbook).join('');
@@ -395,14 +399,16 @@ const noteItems = (docs) => docs.flatMap((d) => d.sections.map((s) => ({
   id: domId(`n-${d.name}-${s.slug}`), key: `note:${d.name}#${s.slug}`, label: s.heading,
 })));
 const navGroups = [
+  { view: 'interview', label: 'Interview', items: noteItems(interviewNotes) },
   { view: 'how', label: 'How it works', items: noteItems(howNotes) },
+  { sep: 'Reference' },
   { view: 'spine', label: 'Spine', items: [] },
   { view: 'adr', label: 'Trade-offs', items: adrs.map((d) => ({ id: domId(`adr-${d.name}`), key: `adr:${d.name}`, label: d.title.replace(/^ADR\s*/i, '') })) },
   { view: 'drills', label: 'Drills', items: runbooks.map((d) => ({ id: domId(`rb-${d.name}`), key: `runbook:${d.name}`, label: d.title.replace(/^Runbook:\s*/i, '') })) },
   { view: 'linux', label: 'Linux map', items: noteItems(linuxNotes) },
   { view: 'concepts', label: 'Concepts', items: noteItems(conceptNotes) },
 ];
-const navHtml = navGroups.map((g) => `<li><a href="#${g.view}" class="top" data-view="${g.view}">${g.label}<span class="count" data-count="${g.view}"></span></a>${sub(g.view, g.items)}</li>`).join('');
+const navHtml = navGroups.map((g) => (g.sep ? `<li class="sep">${g.sep}</li>` : `<li><a href="#${g.view}" class="top" data-view="${g.view}">${g.label}<span class="count" data-count="${g.view}"></span></a>${sub(g.view, g.items)}</li>`)).join('');
 
 const viewHead = (title, subtitle, cover) => `<header class="view-head"><h1>${title}</h1><span class="sub">${subtitle}</span>`
   + (cover ? `<div class="ctl"><button type="button" class="btn cover-all" aria-pressed="false">Cover all</button></div>` : '')
@@ -434,6 +440,7 @@ ${CSS}
   <p class="built">Built ${built} from ${sourceCount} sources</p>
 </nav>
 <main>
+  <section class="view" data-view="interview"><header class="view-head"><h1>Interview track</h1><span class="sub">docs/notes/interview.md</span><div class="ctl"><button type="button" class="btn cover-qa" aria-pressed="false">Cover answers</button></div></header>${interviewHtml || empty('interview notes', 'docs/notes/README.md')}</section>
   <section class="view" data-view="how">${viewHead('How Kubernetes works', 'docs/notes/how-it-works.md, scripts/study/diagrams')}${howHtml || empty('How it works notes', 'docs/notes/README.md')}</section>
   <section class="view" data-view="spine">
     <header class="view-head"><h1>Troubleshooting spine</h1><span class="sub">docs/troubleshooting-spine.html, embedded unchanged</span>
