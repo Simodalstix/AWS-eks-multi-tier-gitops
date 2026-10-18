@@ -10,6 +10,10 @@ module "eks" {
   subnet_ids                     = module.vpc.private_subnets
   cluster_endpoint_public_access = true
 
+  # Secrets encryption key. The lab is rebuilt often; each destroy schedules
+  # one key for deletion, so use the shortest window AWS allows.
+  kms_key_deletion_window_in_days = 7
+
   # EKS Managed Node Groups
   eks_managed_node_groups = {
     main = {

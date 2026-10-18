@@ -47,9 +47,9 @@ variable "single_nat_gateway" {
 }
 
 variable "node_group_instance_types" {
-  description = "Instance types for EKS node group"
+  description = "Instance types for EKS node group. Same vCPU and memory, so Cluster Autoscaler can size the group; two types give Spot more capacity pools."
   type        = list(string)
-  default     = ["t3.medium"]
+  default     = ["t3.medium", "t3a.medium"]
 }
 
 variable "node_group_scaling_config" {
