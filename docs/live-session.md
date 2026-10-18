@@ -6,7 +6,8 @@ Run by hand, in order, from the repo root unless a step says otherwise. Region
 - **I run this**: apply, push, destroy. Billing or publishing actions.
 - **unverified**: written from repo files and docs, never run against a cluster.
   Everything from step C onward is unverified until you paste output back.
-- Save each step's output; drills in step F become runbooks from that output.
+- Log the whole session: `mkdir -p ~/eks-sessions && script -f -a ~/eks-sessions/$(date +%F).log`, then `exit` at the end. Every command and its output lands in the file; write runbooks from it.
+- Scripts: `scripts/deploy-infrastructure.sh` (A and B), `scripts/setup-argocd.sh` (C), `scripts/drill.sh` (F), `scripts/teardown.sh` (G).
 
 ## 0. Before you start
 
@@ -38,7 +39,7 @@ terraform show -json tfplan | jq -r '.resource_changes[] | select(.type=="aws_ek
 Expected (seen on 2026-10-18 from empty local state):
 - [ ] `Plan: 84 to add, 0 to change, 0 to destroy.`
 - [ ] One each of: `aws_eks_cluster`, `aws_nat_gateway`, `aws_eip`, `aws_eks_node_group`, `aws_kms_key`
-- [ ] Node group `SPOT  AL2023_x86_64_STANDARD  t3.medium  min 1 desired 2 max 4`; cluster `1.35`
+- [ ] Node group `SPOT  AL2023_x86_64_STANDARD  t3.medium,t3a.medium  min 1 desired 2 max 4`; cluster `1.35` (seen 2026-10-19)
 - [ ] Anything to change or destroy: stop. Local state is not empty or not what you think.
 
 Cost drivers to confirm (ap-southeast-2 prices, AWS Price List API, 2026-10-18):
@@ -48,7 +49,7 @@ Cost drivers to confirm (ap-southeast-2 prices, AWS Price List API, 2026-10-18):
 | EKS control plane | apply | $0.10/h |
 | NAT gateway, 1 | apply | $0.059/h + $0.059/GB |
 | NAT Elastic IP | apply | $0.005/h |
-| Spot t3.medium, 2 (up to 4 via autoscaler) | apply | $0.0188 to $0.0201/h each |
+| Spot t3.medium or t3a.medium, 2 (up to 4 via autoscaler) | apply | $0.0188 to $0.0201/h each (t3.medium; t3a.medium not checked) |
 | gp3 50 GiB per node | apply | $0.096/GB-month |
 | ALB + its public IPs | once the `frontend` Ingress reconciles (step C) | $0.0252/h + LCU, $0.005/h per IP |
 
@@ -238,37 +239,49 @@ NODE=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')
 
 Clean up debug pods: `kubectl get pods -o name | grep node-debugger | xargs -r kubectl delete`
 
-## F. Drills 1 to 4
+## F. Drills
 
-Argo CD `selfHeal` reverts manual changes to `frontend`. Pause it for the drills:
+`scripts/drill.sh` injects and removes each fault. Triage and mitigation are
+yours to type: that is the practice. `scripts/drill.sh list` shows all ten.
+
+- Frontend drills: `break` pauses Argo CD auto-sync first, otherwise
+  `selfHeal` reverts the fault within seconds. `restore` resets fields the
+  chart never sets, turns auto-sync back on and waits for `Synced`.
+- Run `restore` even after you mitigated by hand, so the next drill starts
+  from Git.
+
+Before the first drill:
 
 ```bash
-kubectl -n argocd patch application frontend --type merge -p '{"spec":{"syncPolicy":{"automated":null}}}'
-kubectl -n argocd get application frontend -o jsonpath='{.spec.syncPolicy}{"\n"}'
+ALB=$(kubectl -n portfolio-apps get ingress frontend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+# second terminal: availability as the user sees it
+while true; do printf '%s %s\n' "$(date -u +%T)" "$(curl -s -o /dev/null -m 3 -w '%{http_code}' -H 'Host: frontend.local' "http://$ALB/")"; sleep 2; done
 ```
 
-For every drill, paste back:
-- `date -u` before the fault and when you first saw it
+For every drill, record:
+- `date -u` at the break and when you first saw the symptom
 - output of each triage command, in order
-- the revert output and `kubectl -n portfolio-apps get pods` after it
-- `curl -sI -H 'Host: frontend.local' "http://$ALB/" | head -1` during and after (was there an outage?)
-- any alert state from `curl -s localhost:9090/api/v1/alerts` (port-forward from D6)
+- what the curl loop showed: was there an outage, how long
+- alert state: `curl -s localhost:9090/api/v1/alerts | jq -r '.data.alerts[] | [.labels.alertname, .state] | @tsv'` (port-forward from D6)
+- anything that did not match Expected. That is the most useful line.
 
-Rolling update with 2 replicas and default 25% settings: maxSurge 1, maxUnavailable 0, so old pods should keep serving in every drill (unverified).
+Rolling update with 2 replicas and default 25% settings: maxSurge 1,
+maxUnavailable 0, so old pods should keep serving in drills 1 to 4 and 6
+(unverified).
 
 ### Drill 1: ImagePullBackOff
 
 ```bash
-# fault
-kubectl -n portfolio-apps set image deploy/frontend frontend=nginx:drill-no-such-tag
+scripts/drill.sh break image
 # triage
 kubectl -n portfolio-apps get pods
 kubectl -n portfolio-apps describe pod <new-pod> | sed -n '/Events:/,$p'
 kubectl -n portfolio-apps rollout status deploy/frontend --timeout=30s
 kubectl -n portfolio-apps get events --sort-by=.lastTimestamp | tail -10
-# revert
+# mitigate
 kubectl -n portfolio-apps rollout undo deploy/frontend
 kubectl -n portfolio-apps rollout status deploy/frontend --timeout=120s
+scripts/drill.sh restore image
 ```
 
 Expected: new pod `ErrImagePull` then `ImagePullBackOff`; event `manifest unknown` or `not found`.
@@ -276,15 +289,14 @@ Expected: new pod `ErrImagePull` then `ImagePullBackOff`; event `manifest unknow
 ### Drill 2: CrashLoopBackOff
 
 ```bash
-# fault
-kubectl -n portfolio-apps patch deploy frontend --type json -p '[{"op":"add","path":"/spec/template/spec/containers/0/command","value":["sh","-c","echo drill-crash; exit 1"]}]'
+scripts/drill.sh break crash
 # triage
 kubectl -n portfolio-apps get pods -w          # Ctrl-C after 2 or 3 restarts
 kubectl -n portfolio-apps logs <new-pod> --previous
 kubectl -n portfolio-apps describe pod <new-pod> | grep -A6 'Last State'
-# revert
+# mitigate
 kubectl -n portfolio-apps rollout undo deploy/frontend
-kubectl -n portfolio-apps rollout status deploy/frontend --timeout=120s
+scripts/drill.sh restore crash
 ```
 
 Expected: `drill-crash` in previous logs, `Exit Code: 1`, restarts with backoff; `PodCrashLooping` pending, then firing after about 5 minutes (unverified).
@@ -292,26 +304,24 @@ Expected: `drill-crash` in previous logs, `Exit Code: 1`, restarts with backoff;
 ### Drill 3: OOMKilled
 
 ```bash
-# fault: busybox awk doubles a string until the 256Mi limit kills it (unverified in nginx:alpine)
-kubectl -n portfolio-apps patch deploy frontend --type json -p '[{"op":"add","path":"/spec/template/spec/containers/0/command","value":["awk","BEGIN{s=\"a\"; while(1) s=s s}"]}]'
+scripts/drill.sh break oom
 # triage
 kubectl -n portfolio-apps get pods
 kubectl -n portfolio-apps describe pod <new-pod> | grep -A6 'Last State'
 kubectl -n portfolio-apps get pod <new-pod> -o jsonpath='{.status.containerStatuses[0].lastState.terminated}{"\n"}'
 kubectl -n portfolio-apps top pod
 kubectl debug node/<node-of-pod> -it --profile=sysadmin --image=busybox:1.36 -- chroot /host sh -c 'dmesg | grep -i -E "oom|killed process" | tail -5'
-# revert
+# mitigate
 kubectl -n portfolio-apps rollout undo deploy/frontend
-kubectl -n portfolio-apps rollout status deploy/frontend --timeout=120s
+scripts/drill.sh restore oom
 ```
 
-Expected: `Reason: OOMKilled`, `Exit Code: 137`, then CrashLoopBackOff; kernel line naming the cgroup.
+Expected: `Reason: OOMKilled`, `Exit Code: 137`, then CrashLoopBackOff; kernel line naming the cgroup. The fault relies on busybox `awk` in `nginx:alpine` (unverified).
 
 ### Drill 4: Stalled rollout and rollback
 
 ```bash
-# fault: readiness probe path returns 404; progress deadline cut to 2 minutes
-kubectl -n portfolio-apps patch deploy frontend --type json -p '[{"op":"replace","path":"/spec/progressDeadlineSeconds","value":120},{"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/path","value":"/drill-not-found"}]'
+scripts/drill.sh break probe     # readiness path 404, progress deadline 2 min
 # triage
 kubectl -n portfolio-apps rollout status deploy/frontend --timeout=180s
 kubectl -n portfolio-apps get pods
@@ -319,75 +329,156 @@ kubectl -n portfolio-apps describe pod <new-pod> | sed -n '/Events:/,$p'
 kubectl -n portfolio-apps get deploy frontend -o jsonpath='{.status.conditions[?(@.type=="Progressing")]}{"\n"}'
 kubectl -n portfolio-apps get rs
 kubectl -n portfolio-apps rollout history deploy/frontend
-# rollback
+# mitigate
 kubectl -n portfolio-apps rollout undo deploy/frontend
-kubectl -n portfolio-apps patch deploy frontend --type json -p '[{"op":"replace","path":"/spec/progressDeadlineSeconds","value":600}]'
-kubectl -n portfolio-apps rollout status deploy/frontend --timeout=120s
+scripts/drill.sh restore probe
 ```
 
 Expected: new pod `Running` but `0/1`, `Readiness probe failed: HTTP probe failed with statuscode: 404`; rollout status exits with `exceeded its progress deadline`; condition `ProgressDeadlineExceeded`. `DeploymentReplicasUnavailable` should not fire because old pods stay available (unverified).
 
-### Restore GitOps
+### Drill 5: Service matches no pods (ALB 503)
 
 ```bash
-kubectl apply -f argocd/applications/frontend-app.yaml
-kubectl -n argocd get application frontend -o jsonpath='{.status.sync.status} {.status.health.status}{"\n"}'
+scripts/drill.sh break selector
+# triage, from the user inward
+curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: frontend.local' "http://$ALB/"
+kubectl -n portfolio-apps get pods -o wide                # pods are fine
+kubectl -n portfolio-apps get endpointslices -l kubernetes.io/service-name=frontend
+kubectl -n portfolio-apps get svc frontend -o jsonpath='{.spec.selector}{"\n"}'
+kubectl -n portfolio-apps get pods --show-labels
+TG=$(kubectl -n portfolio-apps get targetgroupbindings -o jsonpath='{.items[0].spec.targetGroupARN}')
+aws elbv2 describe-target-health --region ap-southeast-2 --target-group-arn "$TG" --query 'TargetHealthDescriptions[].[Target.Id,TargetHealth.State]' --output table
+# mitigate
+kubectl -n portfolio-apps patch svc frontend --type merge -p '{"spec":{"selector":{"app.kubernetes.io/name":"frontend"}}}'
+scripts/drill.sh restore selector
 ```
 
-- [ ] `Synced Healthy`
+Expected: pods `Running 1/1` while users get `503`; EndpointSlice with no endpoints; targets `draining` then none. Lesson: healthy pods do not mean a healthy service (unverified).
+
+### Drill 6: Pending, and the autoscaler cannot help
+
+```bash
+scripts/drill.sh break pending   # requests 3 CPUs; a t3.medium has 2
+# triage
+kubectl -n portfolio-apps get pods
+kubectl -n portfolio-apps describe pod <pending-pod> | sed -n '/Events:/,$p'
+kubectl describe nodes | grep -A8 'Allocated resources'
+kubectl -n kube-system logs deploy/cluster-autoscaler-aws-cluster-autoscaler --tail=200 | grep -i -E 'NotTriggerScaleUp|no expansion|insufficient'
+# mitigate
+kubectl -n portfolio-apps rollout undo deploy/frontend
+scripts/drill.sh restore pending
+```
+
+Expected: `FailedScheduling ... Insufficient cpu`; event `NotTriggerScaleUp` from cluster-autoscaler, because no node in the group could ever fit the pod. Contrast with D3, where adding a node helps (unverified).
+
+### Drill 7: CoreDNS down
+
+```bash
+scripts/drill.sh break dns
+# triage
+kubectl run dnstest --rm -it --restart=Never --image=busybox:1.36 -- nslookup kubernetes.default.svc.cluster.local
+kubectl -n kube-system get deploy coredns
+kubectl -n kube-system get endpointslices -l kubernetes.io/service-name=kube-dns
+SVC_IP=$(kubectl -n portfolio-apps get svc frontend -o jsonpath='{.spec.clusterIP}')
+kubectl run nettest --rm -it --restart=Never --image=busybox:1.36 -- wget -qO- -T 3 http://frontend.portfolio-apps   # by name
+kubectl run nettest --rm -it --restart=Never --image=busybox:1.36 -- wget -qO- -T 3 "http://$SVC_IP"              # by IP
+curl -sI -H 'Host: frontend.local' "http://$ALB/" | head -1
+# mitigate
+kubectl -n kube-system scale deploy coredns --replicas=2
+scripts/drill.sh restore dns
+```
+
+Expected: lookup times out; by name fails, by IP works; the ALB still returns 200 because nothing in that path uses cluster DNS. Argo CD cannot reach GitHub on its next refresh. Lesson: map the blast radius before calling it an outage (unverified).
+
+### Drill 8: IRSA broken on the load balancer controller
+
+```bash
+scripts/drill.sh break irsa
+# triage
+kubectl -n kube-system get sa aws-load-balancer-controller -o jsonpath='{.metadata.annotations}{"\n"}'
+kubectl -n kube-system get pod -l app.kubernetes.io/name=aws-load-balancer-controller -o jsonpath='{.items[0].spec.containers[0].env[*].name}{"\n"}'
+kubectl -n kube-system logs deploy/aws-load-balancer-controller --tail=100 | grep -i -E 'accessdenied|not authorized|error'
+kubectl -n portfolio-apps describe ingress frontend | tail -5
+curl -sI -H 'Host: frontend.local' "http://$ALB/" | head -1
+# mitigate: put the annotation back and restart (same as restore)
+scripts/drill.sh restore irsa
+```
+
+Expected: no `AWS_ROLE_ARN` in the pod env; `AccessDenied` naming the node role, because the SDK falls back to instance metadata (hop limit 2 lets pods reach it); the existing ALB keeps serving, only changes fail. Lesson: IRSA failure is often silent until the next change (unverified).
+
+### Drill 9: Node NotReady
+
+```bash
+scripts/drill.sh break node      # stops kubelet over SSM on a node running frontend
+# triage
+kubectl get nodes -w             # Ctrl-C at NotReady
+kubectl describe node <node> | sed -n '/Conditions:/,/Addresses:/p'
+kubectl describe node <node> | grep -A3 Taints
+kubectl get pods -A -o wide --field-selector spec.nodeName=<node>
+kubectl get events -A --sort-by=.lastTimestamp | grep -i -E 'notready|taint|evict' | tail
+# wait 5 min for eviction, watch the curl loop and the NodeNotReady alert
+scripts/drill.sh restore node
+kubectl get nodes -w
+```
+
+Expected: conditions `Unknown`, `Kubelet stopped posting node status`; taint `node.kubernetes.io/unreachable`; after 300 s pods on that node `Terminating` and replacements elsewhere; `NodeNotReady` firing after 5 min. If both frontend pods were on that node, the curl loop shows 503s until replacements are Ready (unverified).
+
+### Drill 10: Argo CD self-heal
+
+```bash
+scripts/drill.sh break selfheal  # auto-sync on, image changed by hand
+kubectl -n argocd get application frontend -w
+kubectl -n portfolio-apps rollout history deploy/frontend
+kubectl -n portfolio-apps get deploy frontend -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+```
+
+Expected: `OutOfSync` then `Synced` within seconds; image back to `nginx:alpine`; two new revisions in history. Lesson: under GitOps a kubectl hotfix is reverted. Pause auto-sync or fix it in Git.
+
+### After each drill: write it up
+
+```bash
+cp runbooks/_template.md runbooks/<symptom-slug>.md
+scripts/build-study.sh
+```
+
+Fill it from the recorded output, not memory. Unplanned failures (apply
+errors, stuck syncs, anything in steps B to E) get a runbook too; they are
+the real ones. Each runbook shows up under Drills on the study page.
 
 ## G. Teardown
 
-1. Delete the Argo CD applications so the controller deletes the ALB it created:
-
 ```bash
-kubectl -n argocd delete application frontend monitoring
-kubectl -n portfolio-apps get ingress
-aws elbv2 describe-load-balancers --region ap-southeast-2 --query 'LoadBalancers[].LoadBalancerName'
-aws ec2 describe-security-groups --region ap-southeast-2 --filters Name=tag:elbv2.k8s.aws/cluster,Values=eks-portfolio-dev --query 'SecurityGroups[].GroupId'
+scripts/teardown.sh
 ```
 
-- [ ] No Ingress, no `k8s-...` load balancer, no controller security groups. Repeat until empty before step 2.
+What it does, in order:
 
-2. ECR repositories must be empty or destroy fails (`aws_ecr_repository` has no `force_delete`):
+1. Deletes the Argo CD applications. The resources finalizer deletes the
+   Ingress, and the AWS Load Balancer Controller then deletes the ALB, target
+   groups and `k8s-...` security groups. Terraform does not know about these;
+   if they remain, destroy hangs on the subnets and VPC.
+2. Waits up to 5 minutes for those load balancers and security groups to go.
+   Stops if they do not.
+3. Stops if either ECR repository has images (`aws_ecr_repository` has no
+   `force_delete`).
+4. `terraform destroy`, which asks for confirmation. **I run this.**
+5. Prints the proof checks; every line should be empty and state entries `0`.
+   Compare with the non-empty output saved in step C.
 
-```bash
-aws ecr list-images --region ap-southeast-2 --repository-name eks-portfolio/frontend
-aws ecr list-images --region ap-southeast-2 --repository-name eks-portfolio/backend
-```
+If the cluster is already gone or unreachable: `scripts/teardown.sh --skip-cluster`.
 
-3. **I run this:**
-
-```bash
-cd infrastructure
-terraform destroy
-```
-
-4. Proof, all expected empty (`[]` or no output):
-
-```bash
-aws eks list-clusters --region ap-southeast-2
-aws ec2 describe-nat-gateways --region ap-southeast-2 --filter Name=state,Values=pending,available,deleting --query 'NatGateways[].[NatGatewayId,State]'
-aws elbv2 describe-load-balancers --region ap-southeast-2 --query 'LoadBalancers[].LoadBalancerName'
-aws ec2 describe-addresses --region ap-southeast-2 --query 'Addresses[].[PublicIp,AllocationId]'
-aws ec2 describe-volumes --region ap-southeast-2 --filters Name=tag:Project,Values=eks-portfolio --query 'Volumes[].[VolumeId,State,Size]'
-aws ec2 describe-volumes --region ap-southeast-2 --filters Name=status,Values=available --query 'Volumes[].[VolumeId,Size,CreateTime]'
-aws ec2 describe-vpcs --region ap-southeast-2 --filters Name=vpc-id,Values=$VPC_ID --query 'Vpcs[].VpcId'
-aws logs describe-log-groups --region ap-southeast-2 --log-group-name-prefix /aws/eks/eks-portfolio-dev --query 'logGroups[].logGroupName'
-terraform -chdir=infrastructure state list | wc -l
-```
-
-- [ ] Each empty; state list `0`. Compare with the non-empty output saved in step C.
-- [ ] NAT gateways show as `deleted` for a while; the `deleting` filter above excludes those.
-- [ ] Volumes: first query uses the launch template tag `Project=eks-portfolio` (from the plan); second lists every unattached volume in the region, including other projects'.
+Notes on the proof:
+- NAT gateways show as `deleted` for a while; the query excludes that state.
+- Volumes are matched on the launch template tag `Project=eks-portfolio`.
+- Leaked ENIs can still block subnet deletion; see H.
 
 ## H. Cost surprises
 
 Things that can keep billing, or bill later, after `terraform destroy`:
 
-- ALB, target groups and `k8s-...` security groups if the Ingress still existed at destroy: created by the controller, unknown to Terraform. Destroy can also hang on subnet or VPC deletion. Step G1 prevents it.
-- EKS control-plane log group `/aws/eks/eks-portfolio-dev/cluster`: EKS can recreate it after Terraform deletes it, without retention (known terraform-aws-eks behaviour, unverified here). Check with the last `describe-log-groups` in G4.
-- KMS key: destroy schedules deletion with the 30-day default window (`kms_key_deletion_window_in_days` unset). Whether the key bills during the window: unverified. Check `aws kms list-keys` then `aws kms describe-key --key-id <id> --query KeyMetadata.KeyState`.
+- ALB, target groups and `k8s-...` security groups if the Ingress still existed at destroy: created by the controller, unknown to Terraform. Destroy can also hang on subnet or VPC deletion. `scripts/teardown.sh` step 1 prevents it.
+- EKS control-plane log group `/aws/eks/eks-portfolio-dev/cluster`: EKS can recreate it after Terraform deletes it, without retention (known terraform-aws-eks behaviour, unverified here). Check with the `log groups` line of the teardown proof.
+- KMS key: destroy schedules deletion with a 7-day window (`kms_key_deletion_window_in_days = 7` in `infrastructure/eks.tf`); each rebuild adds one more pending key. Whether the key bills during the window: unverified. Check `aws kms list-keys` then `aws kms describe-key --key-id <id> --query KeyMetadata.KeyState`.
 - ECR images, if any were pushed by hand: storage per GB-month until the repositories are deleted.
 - NAT data processing, LCUs and CloudWatch Logs ingestion during the session: billed after the fact.
 - Leaked ENIs from the VPC CNI can block subnet deletion: `aws ec2 describe-network-interfaces --region ap-southeast-2 --filters Name=vpc-id,Values=$VPC_ID --query 'NetworkInterfaces[].[NetworkInterfaceId,Status,Description]'`

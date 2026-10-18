@@ -37,7 +37,7 @@ Items tagged unverified come from upstream defaults or docs, not from repo files
 | 3 Target group | `target-type: ip` (`values.yaml`): targets are pod IPs, health check `GET /` | 2 Load balancer and target health | `aws elbv2 describe-target-health --target-group-arn <arn>` |
 | 4 Service, EndpointSlice | not in the data path; Service `frontend` selects pods, the EndpointSlice lists Ready pod IPs, the controller copies them into the target group | 4 Service and EndpointSlices | `kubectl -n portfolio-apps get endpointslices -l kubernetes.io/service-name=frontend` |
 | 5 Pod | nginx :80 in a private subnet; pod IP from the VPC (VPC CNI, EKS default) | 5 Pod status, 6 Container logs | `kubectl -n portfolio-apps get pods -o wide` |
-| 6 Node | t3.medium Spot, AL2023, kubelet and ENIs | 7 Node conditions, 8 Node OS and AWS | `kubectl describe node <node>` |
+| 6 Node | t3.medium or t3a.medium Spot, AL2023, kubelet and ENIs | 7 Node conditions, 8 Node OS and AWS | `kubectl describe node <node>` |
 
 ## Deploy path
 
@@ -65,7 +65,7 @@ Items tagged unverified come from upstream defaults or docs, not from repo files
 ## Glossary
 
 - **pod**: containers sharing one IP; `frontend` pods run `nginx:alpine`
-- **node**: EC2 worker; t3.medium Spot, AL2023, 1 to 4, private subnets
+- **node**: EC2 worker; t3.medium or t3a.medium Spot, AL2023, 1 to 4, private subnets
 - **deployment**: pod template plus rollout policy; `frontend`, replicas set by the HPA
 - **replicaset**: keeps N identical pods; one per template revision, `frontend-<hash>`
 - **service**: stable name and virtual IP; `frontend`, ClusterIP :80

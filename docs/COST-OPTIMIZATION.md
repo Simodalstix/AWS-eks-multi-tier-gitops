@@ -5,7 +5,7 @@
 - **Spot instances**: managed node group `capacity_type = "SPOT"` (`enable_spot_instances = true`)
 - **Single NAT gateway**: one NAT gateway instead of one per AZ
 - **gp3 root volumes**: 50 GiB per node
-- **Small nodes**: t3.medium
+- **Small nodes**: t3.medium or t3a.medium; two types give Spot more capacity pools
 - **HPA**: 2 to 10 frontend pods on CPU
 - **Cluster Autoscaler**: removes underused nodes down to the node group minimum (1)
 - **ECR lifecycle policies**: keep 10 tagged images, expire untagged after 1 day

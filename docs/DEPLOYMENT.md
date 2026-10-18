@@ -90,7 +90,7 @@ kubectl get applications -n argocd
 
 1. **AWS Permissions**: the Terraform identity needs EKS, EC2, IAM, KMS, CloudWatch Logs and ECR permissions
 2. **Region Mismatch**: verify all resources are in ap-southeast-2
-3. **Node Group Issues**: Spot capacity for t3.medium can be unavailable in an AZ
+3. **Node Group Issues**: Spot capacity for t3.medium and t3a.medium can both be unavailable in an AZ
 4. **Wrong kubectl context**: `setup-argocd.sh` stops if the context is not `eks-portfolio-dev`
 
 ### Useful Commands
@@ -104,6 +104,11 @@ kubectl get apps -n argocd
 
 ## Cleanup
 
-Delete the Argo CD applications and wait for the ALB to go before
-`terraform destroy`; otherwise the ALB and its security groups are left behind
-and block VPC deletion. Order and commands: [live-session.md](live-session.md), step G.
+```bash
+./scripts/teardown.sh
+```
+
+Deletes the Argo CD applications, waits for the controller's ALB and security
+groups to go, then runs `terraform destroy` and prints proof that the region is
+empty. Destroying first leaves the ALB behind and blocks VPC deletion. Details:
+[live-session.md](live-session.md), step G.

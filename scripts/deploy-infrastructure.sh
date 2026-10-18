@@ -1,47 +1,41 @@
 #!/bin/bash
+# Plan and apply infrastructure/, back up the local state, configure kubectl.
+# Next step: scripts/setup-argocd.sh
 
-set -e
+set -euo pipefail
 
-echo "🚀 Deploying EKS Infrastructure..."
+command -v terraform >/dev/null 2>&1 || { echo "terraform is required." >&2; exit 1; }
+command -v aws >/dev/null 2>&1 || { echo "aws CLI is required." >&2; exit 1; }
+command -v kubectl >/dev/null 2>&1 || { echo "kubectl is required." >&2; exit 1; }
 
-# Check prerequisites
-command -v terraform >/dev/null 2>&1 || { echo "❌ Terraform is required but not installed. Aborting." >&2; exit 1; }
-command -v aws >/dev/null 2>&1 || { echo "❌ AWS CLI is required but not installed. Aborting." >&2; exit 1; }
+aws sts get-caller-identity --query Arn --output text || { echo "AWS credentials not configured." >&2; exit 1; }
 
-# Check AWS credentials
-aws sts get-caller-identity >/dev/null 2>&1 || { echo "❌ AWS credentials not configured. Run 'aws configure' first." >&2; exit 1; }
-
-# Get script directory and navigate to project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-cd "$PROJECT_ROOT/infrastructure"
+cd "$SCRIPT_DIR/../infrastructure"
 
-# Initialize Terraform
-echo "📦 Initializing Terraform..."
-terraform init
-
-# Validate configuration
-echo "✅ Validating Terraform configuration..."
+terraform init -input=false
 terraform validate
+terraform plan -input=false -out=tfplan
+terraform show -no-color tfplan | grep -E '^Plan:'
 
-# Plan deployment
-echo "📋 Planning infrastructure deployment..."
-terraform plan -out=tfplan
-
-# Apply if plan looks good
-read -p "🤔 Do you want to apply this plan? (y/N): " -n 1 -r
+read -p "Apply this plan? (y/N): " -n 1 -r
 echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "🏗️ Applying infrastructure changes..."
-    terraform apply tfplan
-    
-    echo "📝 Getting cluster configuration..."
-    aws eks --region $(terraform output -raw aws_region) update-kubeconfig --name $(terraform output -raw cluster_name)
-    
-    echo "✅ Infrastructure deployment complete!"
-    echo "📊 Cluster info:"
-    kubectl cluster-info
-else
-    echo "❌ Deployment cancelled."
-    rm -f tfplan
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+  echo "Cancelled."
+  rm -f tfplan
+  exit 0
 fi
+
+START=$(date +%s)
+terraform apply tfplan
+rm -f tfplan
+echo "Apply took $(( ($(date +%s) - START) / 60 )) min"
+
+# Local backend, no locking: this file is the only record of what to destroy
+mkdir -p ~/tfstate-backups
+BACKUP=~/tfstate-backups/eks-portfolio-dev-$(date +%Y%m%d-%H%M).tfstate
+cp terraform.tfstate "$BACKUP"
+echo "State backed up to $BACKUP"
+
+aws eks update-kubeconfig --region "$(terraform output -raw aws_region)" --name "$(terraform output -raw cluster_name)"
+kubectl get nodes -o wide

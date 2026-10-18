@@ -32,7 +32,7 @@
 
 - **Amazon EKS**: managed control plane, one managed node group
 - **Amazon VPC**: public and private subnets in 3 AZs, one NAT gateway, flow logs
-- **Amazon EC2**: t3.medium Spot worker nodes, AL2023
+- **Amazon EC2**: t3.medium or t3a.medium Spot worker nodes, AL2023
 - **AWS IAM**: node role, IRSA roles for the controllers, EKS access entry for the cluster creator
 - **Elastic Load Balancing**: ALB created by the AWS Load Balancer Controller from the `frontend` Ingress
 - **Amazon ECR**: two repositories, not used by the deployed chart

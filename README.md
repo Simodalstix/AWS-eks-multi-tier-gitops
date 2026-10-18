@@ -15,7 +15,7 @@ from this repository. The workload is an nginx placeholder (`nginx:alpine`).
 **AWS (Terraform, `infrastructure/`):**
 - VPC across 3 AZs, public and private subnets, VPC flow logs
 - One NAT gateway (`single_nat_gateway = true`)
-- EKS 1.35, one managed node group: t3.medium, Spot, AL2023, 1 to 4 nodes, in private subnets
+- EKS 1.35, one managed node group: t3.medium or t3a.medium, Spot, AL2023, 1 to 4 nodes, in private subnets
 - IRSA roles: AWS Load Balancer Controller, EBS CSI driver (role only, driver not installed), Cluster Autoscaler
 - Node role with `AmazonSSMManagedInstanceCore` for Session Manager access
 - ECR repositories `eks-portfolio/frontend` and `eks-portfolio/backend`, scan on push, lifecycle policies (no images are built or pushed by this repo)
@@ -48,7 +48,7 @@ Earlier diagram kept in diagrams/ for reference, not current.
 ├── helm-charts/frontend/    # nginx placeholder chart
 ├── argocd/                  # Argo CD project and applications
 ├── monitoring/              # kube-prometheus-stack values
-├── scripts/                 # Terraform wrapper, cluster bootstrap, study page build
+├── scripts/                 # deploy, bootstrap, drills, teardown, study page build
 └── docs/                    # Architecture, deployment, cost, ADRs, live session checklist
 ```
 
@@ -94,7 +94,8 @@ metrics-server and Cluster Autoscaler at pinned chart versions, creates the
 Argo CD reads the chart and values from GitHub (`targetRevision: HEAD`), so local
 changes take effect only after they are pushed.
 
-Step-by-step session with verification and teardown: [docs/live-session.md](docs/live-session.md).
+Step-by-step session with verification, ten break-and-fix drills (`scripts/drill.sh`) and
+teardown (`scripts/teardown.sh`): [docs/live-session.md](docs/live-session.md).
 
 ### Remote State
 State is local (`infrastructure/terraform.tfstate`). For shared use, configure
@@ -130,7 +131,7 @@ Hourly prices in ap-southeast-2 from the AWS Price List API, 2026-10-18:
 | NAT gateway | $0.059/h + $0.059/GB |
 | Public IPv4 (NAT EIP, ALB) | $0.005/h each |
 | ALB, once the Ingress exists | $0.0252/h + LCU |
-| t3.medium Spot, 2 to 4 nodes | $0.0188 to $0.0201/h each (on-demand $0.0528/h) |
+| t3.medium Spot, 2 to 4 nodes (t3a.medium also allowed) | $0.0188 to $0.0201/h each (on-demand $0.0528/h) |
 | gp3 root volumes, 50 GiB per node | $0.096/GB-month |
 
 Spot was 62 to 64% below on-demand for t3.medium on that date; the gap varies.
@@ -145,7 +146,6 @@ Destroy the stack after each session: [docs/live-session.md](docs/live-session.m
 - No secrets manager integration
 - Local Terraform state, no locking
 - Single NAT gateway: one AZ failure cuts egress for all private subnets
-- Single instance type (t3.medium) for Spot capacity
 - No persistent storage for monitoring; EBS CSI driver not installed
 - No TLS or DNS: the ALB serves HTTP with host `frontend.local`
 - No ALB 5xx alert: ALB metrics are in CloudWatch and are not exported to Prometheus
