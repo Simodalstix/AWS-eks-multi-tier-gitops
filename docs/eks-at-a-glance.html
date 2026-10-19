@@ -48,11 +48,17 @@ svg .t { font-size: 14px; font-weight: 700; }
 svg .s { font-size: 12px; fill: var(--muted); }
 svg .b { font-size: 13px; }
 svg .r { font-size: 10.5px; fill: var(--muted); }
+svg .d { font-size: 11px; }
 svg .aws { fill: var(--aws-bg); stroke: var(--aws); }
 svg .you { fill: var(--you-bg); stroke: var(--you); }
 svg .pod { fill: var(--pod-bg); stroke: var(--pod); }
 svg .out { fill: var(--out-bg); stroke: var(--out); }
 svg .frame { fill: none; stroke: var(--you); stroke-dasharray: 5 4; }
+svg .asg { fill: none; stroke: var(--you); stroke-width: 1.5; stroke-dasharray: 1.5 4; stroke-linecap: round; }
+svg .slot { fill: none; stroke: var(--you); stroke-dasharray: 5 4; }
+svg .clu { fill: none; stroke: var(--pod); stroke-width: 2.5; stroke-dasharray: 11 5; }
+svg .lc { fill: var(--pod); font-weight: 700; font-size: 13px; }
+svg .lcs { fill: var(--pod); font-size: 10.5px; }
 svg rect { stroke-width: 1.5; }
 svg .req { stroke: var(--req); stroke-width: 2.5; fill: none; }
 svg .dep { stroke: var(--dep); stroke-width: 2.5; fill: none; }
@@ -64,11 +70,15 @@ svg .la { fill: var(--aws); font-weight: 700; font-size: 12px; }
 svg .lb { fill: var(--you); font-weight: 700; font-size: 13px; }
 .key { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 12px 0 0; font-size: 15px; }
 .key span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 2px solid var(--c); background: var(--cb); }
+.key .k-clu::before { border: 2px dashed var(--pod); background: none; }
+.key .k-asg::before { border: 2px dotted var(--you); background: none; }
 .k-aws { --c: var(--aws); --cb: var(--aws-bg); }
 .k-you { --c: var(--you); --cb: var(--you-bg); }
 .k-pod { --c: var(--pod); --cb: var(--pod-bg); }
 .k-out { --c: var(--out); --cb: var(--out-bg); }
+.k-dep { --c: var(--dep); --cb: var(--surface); }
 .say { background: var(--surface); border-left: 4px solid var(--you); border-radius: 6px; padding: 12px 16px; margin: 0; font-size: 17px; }
+.tw { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 th, td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--line); }
 th { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
@@ -76,17 +86,24 @@ tr:last-child td { border-bottom: 0; }
 tr.grp td { white-space: normal; background: var(--cb); color: var(--c); font-weight: 700; font-size: 14px; border-left: 4px solid var(--c); }
 tr.grp td span { color: var(--muted); font-weight: 400; }
 td:first-child { font-weight: 600; white-space: nowrap; }
+td.by { font-size: 14px; color: var(--muted); }
+.yes { color: var(--pod); font-weight: 700; }
+.no { color: var(--muted); font-weight: 700; }
 .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--c); margin-right: 6px; }
 .flows { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.flows.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .flow { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 8px; padding: 10px 14px; }
 .flow h3 { margin: 0 0 6px; font-size: 17px; color: var(--c); }
-.flow ol { margin: 0; padding-left: 20px; }
+.flow ol, .flow ul { margin: 0; padding-left: 20px; }
+.flow li { margin: 3px 0; }
 .flow p { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+.flow pre { margin: 6px 0 8px; }
 details { margin-top: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
 details > summary { cursor: pointer; padding: 8px 12px; color: var(--muted); font-size: 14px; font-weight: 600; }
 details[open] > summary { border-bottom: 1px solid var(--line); }
 details .in { padding: 4px 14px 10px; font-size: 15px; }
 details .in p { margin: 8px 0; }
+a { color: var(--req); }
 code, pre { font-family: ui-monospace, "Cascadia Mono", Menlo, monospace; font-size: 13.5px; }
 code { background: var(--out-bg); padding: 1px 5px; border-radius: 4px; }
 pre { background: var(--out-bg); padding: 10px 12px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
@@ -99,6 +116,8 @@ pre code { background: none; padding: 0; }
 .st h3 { margin: 0; font-size: 15px; }
 .st .who { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--c); }
 .st p { margin: 0; font-size: 14px; }
+.st ul { margin: 0; padding-left: 18px; font-size: 14px; }
+.st .where { margin-top: auto; font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 6px; }
 .nodes { display: flex; gap: 6px; flex-wrap: wrap; min-height: 74px; align-items: flex-start; }
 .vm { border: 1.5px solid var(--you); background: var(--you-bg); border-radius: 6px; padding: 14px 5px 5px; display: flex; flex-wrap: wrap; gap: 4px; width: 62px; min-height: 60px; position: relative; align-content: flex-start; }
 .vm::before { content: "VM"; position: absolute; top: 1px; left: 5px; font-size: 10px; font-weight: 700; color: var(--you); }
@@ -108,11 +127,27 @@ pre code { background: none; padding: 0; }
 .pd.wait { border-style: dashed; background: none; }
 .waiting { display: flex; gap: 4px; align-items: center; font-size: 11px; color: var(--muted); }
 .lead2 { font-size: 17px; margin: 12px 0; }
-@media (max-width: 860px) { .scale { grid-template-columns: 1fr; } }
+/* bootstrap and replica sequences */
+.boot { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; counter-reset: b; }
+.boot .st { border-top: 4px solid var(--c); }
+.boot .st h3::before { counter-increment: b; content: counter(b) "  "; color: var(--c); }
+.tag { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 1px 7px; border-radius: 10px; border: 1px solid var(--c); color: var(--c); }
+.seq { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.rec { font: 12.5px/1.5 ui-monospace, "Cascadia Mono", Menlo, monospace; background: var(--out-bg); border-radius: 6px; padding: 6px 9px; }
+.rec b { color: var(--pod); }
+.rec .none { color: var(--muted); }
+.chain { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin: 4px 0 12px; }
+.chain .c { flex: 1 1 150px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 6px; padding: 7px 10px; font-size: 14px; }
+.chain .c b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--c); }
+.chain .arr { align-self: center; color: var(--muted); font-weight: 700; }
+ul.tight { margin: 0; padding-left: 22px; }
+ul.tight li { margin: 5px 0; }
 @media (max-width: 860px) {
+  .scale, .boot, .seq, .flows, .flows.two { grid-template-columns: minmax(0, 1fr); }
   .pic { flex-direction: column; }
-  .flows { grid-template-columns: 1fr; }
   td:first-child { white-space: normal; }
+  .chain { flex-direction: column; }
+  .chain .arr { transform: rotate(90deg); }
 }
 </style>
 </head>
@@ -120,7 +155,7 @@ pre code { background: none; padding: 0; }
 <main>
 
 <h1>EKS at a glance</h1>
-<p class="lead">This project in one picture. Each section below only explains a part of the picture. The grey "Under the hood" boxes hold the deeper Linux detail and are not needed to explain the idea.</p>
+<p class="lead">This project in one picture: what exists, who made it, where it runs and who operates it. Each section below explains one part of the picture. The grey "Under the hood" boxes hold the deeper detail and are not needed to explain the idea.</p>
 
 <div class="pic">
   <figure class="docker">
@@ -152,7 +187,7 @@ pre code { background: none; padding: 0; }
 
   <figure class="eks">
     <figcaption>This project: the same containers, run by Kubernetes on EKS</figcaption>
-    <svg viewBox="0 0 1000 600" role="img" aria-label="EKS architecture: control plane run by AWS, nodes and load balancer in your VPC, Git and Terraform outside">
+    <svg viewBox="0 0 1000 640" role="img" aria-label="EKS architecture. The Kubernetes cluster, outlined, is the AWS-run control plane plus the registered worker nodes. The nodes sit in an Auto Scaling Group in private subnets of your VPC. The load balancer and NAT gateway are in public subnets, outside the cluster. Git and your laptop are outside AWS.">
       <defs>
         <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
       </defs>
@@ -161,9 +196,9 @@ pre code { background: none; padding: 0; }
       <rect class="out" x="10" y="35" width="140" height="56" rx="8"/>
       <text class="t" x="80" y="58" text-anchor="middle">A user</text>
       <text class="s" x="80" y="77" text-anchor="middle">on the internet</text>
-      <rect class="out" x="10" y="317" width="140" height="56" rx="8"/>
-      <text class="t" x="80" y="340" text-anchor="middle">Git (GitHub)</text>
-      <text class="s" x="80" y="359" text-anchor="middle">what should run</text>
+      <rect class="out" x="10" y="380" width="140" height="56" rx="8"/>
+      <text class="t" x="80" y="403" text-anchor="middle">Git (GitHub)</text>
+      <text class="s" x="80" y="422" text-anchor="middle">what should run</text>
       <rect class="out" x="170" y="20" width="142" height="90" rx="8"/>
       <text class="t" x="241" y="43" text-anchor="middle">Your laptop</text>
       <text class="s" x="241" y="66" text-anchor="middle">kubectl, helm → API</text>
@@ -176,110 +211,168 @@ pre code { background: none; padding: 0; }
       <rect class="aws" x="505" y="42" width="145" height="46" rx="6"/><text class="b" x="577" y="61" text-anchor="middle">etcd</text><text class="r" x="577" y="78" text-anchor="middle">stores all the state</text>
       <rect class="aws" x="664" y="42" width="145" height="46" rx="6"/><text class="b" x="736" y="61" text-anchor="middle">scheduler</text><text class="r" x="736" y="78" text-anchor="middle">picks a node per pod</text>
       <rect class="aws" x="823" y="42" width="150" height="46" rx="6"/><text class="b" x="898" y="61" text-anchor="middle">controller manager</text><text class="r" x="898" y="78" text-anchor="middle">keeps counts right</text>
-      <text class="s" x="346" y="109">AWS runs these VMs. Everything goes through the API server; only it touches etcd.</text>
+      <text class="s" x="346" y="109">AWS runs these processes. Everything goes through the API server; only it touches etcd.</text>
+
+      <!-- the Kubernetes cluster: control plane + registered nodes -->
+      <path class="clu" d="M324,4 H996 V130 H974 V604 H336 V130 H324 Z"/>
+      <text class="lc" x="342" y="147">Kubernetes cluster</text>
+      <text class="lcs" x="342" y="163">= control plane + registered nodes</text>
 
       <!-- your account -->
-      <rect class="frame" x="170" y="150" width="820" height="440" rx="12"/>
-      <text class="t" x="186" y="172">Your AWS account: a VPC across 3 Availability Zones</text>
+      <rect class="frame" x="170" y="176" width="820" height="452" rx="12"/>
+      <text class="t" x="186" y="198">Your AWS account</text>
+      <text class="s" x="186" y="215">a VPC across 3 AZs</text>
 
-      <rect class="out" x="186" y="186" width="134" height="390" rx="8" style="fill:none"/>
-      <text class="s" x="253" y="205" text-anchor="middle">public subnets</text>
-      <rect class="you" x="196" y="218" width="114" height="56" rx="8"/>
-      <text class="b" x="253" y="241" text-anchor="middle">Load balancer</text>
-      <text class="s" x="253" y="259" text-anchor="middle">AWS ALB</text>
-      <rect class="you" x="196" y="500" width="114" height="56" rx="8"/>
-      <text class="b" x="253" y="523" text-anchor="middle">NAT gateway</text>
-      <text class="s" x="253" y="541" text-anchor="middle">pods' way out</text>
+      <rect class="out" x="186" y="226" width="134" height="390" rx="8" style="fill:none"/>
+      <text class="s" x="253" y="244" text-anchor="middle">public subnets</text>
+      <rect class="you" x="191" y="258" width="124" height="56" rx="8"/>
+      <text class="b" x="253" y="278" text-anchor="middle">Load balancer</text>
+      <text class="s" x="253" y="293" text-anchor="middle">AWS ALB</text>
+      <text class="r" x="253" y="307" text-anchor="middle">made by LB controller</text>
+      <rect class="you" x="191" y="548" width="124" height="56" rx="8"/>
+      <text class="b" x="253" y="568" text-anchor="middle">NAT gateway</text>
+      <text class="s" x="253" y="583" text-anchor="middle">pods' way out</text>
+      <text class="r" x="253" y="597" text-anchor="middle">made by Terraform</text>
 
-      <rect class="out" x="335" y="186" width="640" height="390" rx="8" style="fill:none"/>
-      <text class="s" x="655" y="205" text-anchor="middle">private subnets</text>
+      <rect class="out" x="328" y="226" width="654" height="390" rx="8" style="fill:none"/>
+      <text class="s" x="655" y="244" text-anchor="middle">private subnets</text>
+
+      <!-- Auto Scaling Group around the peer nodes -->
+      <rect class="asg" x="344" y="252" width="622" height="344" rx="10"/>
+      <text class="s" x="356" y="271">Auto Scaling Group: 1 to 4 nodes</text>
 
       <!-- node 1 -->
-      <rect class="you" x="350" y="215" width="300" height="345" rx="10"/>
-      <text class="t" x="366" y="238">Node 1: an EC2 VM</text>
-      <text class="s" x="366" y="255">t3.medium Spot, Amazon Linux 2023</text>
-      <rect class="pod" x="366" y="275" width="130" height="40" rx="8"/><text class="b" x="431" y="294" text-anchor="middle">frontend app</text><text class="r" x="431" y="309" text-anchor="middle">your app (nginx)</text>
-      <rect class="pod" x="506" y="275" width="130" height="40" rx="8"/><text class="b" x="571" y="294" text-anchor="middle">Prometheus</text><text class="r" x="571" y="309" text-anchor="middle">collects metrics</text>
-      <rect class="pod" x="366" y="325" width="130" height="40" rx="8"/><text class="b" x="431" y="344" text-anchor="middle">Argo CD</text><text class="r" x="431" y="359" text-anchor="middle">syncs Git to cluster</text>
-      <rect class="pod" x="506" y="325" width="130" height="40" rx="8"/><text class="b" x="571" y="344" text-anchor="middle">CoreDNS</text><text class="r" x="571" y="359" text-anchor="middle">names to IPs</text>
-      <text class="s" x="500" y="400" text-anchor="middle">pods are Linux processes</text>
-      <text class="s" x="500" y="416" text-anchor="middle">on this VM, not VMs</text>
-      <rect class="out" x="366" y="490" width="270" height="52" rx="8"/>
-      <text class="b" x="501" y="511" text-anchor="middle">kubelet + containerd</text>
-      <text class="s" x="501" y="529" text-anchor="middle">Linux services: run this VM's pods</text>
+      <rect class="you" x="354" y="282" width="250" height="302" rx="10"/>
+      <text class="t" x="370" y="304">Node 1: an EC2 instance</text>
+      <text class="s" x="370" y="321">t3.medium/t3a.medium Spot, AL2023</text>
+      <rect class="pod" x="370" y="338" width="104" height="40" rx="8"/><text class="b" x="422" y="357" text-anchor="middle">frontend app</text><text class="r" x="422" y="372" text-anchor="middle">nginx placeholder</text>
+      <rect class="pod" x="484" y="338" width="104" height="40" rx="8"/><text class="b" x="536" y="357" text-anchor="middle">Prometheus</text><text class="r" x="536" y="372" text-anchor="middle">collects metrics</text>
+      <rect class="pod" x="370" y="388" width="104" height="40" rx="8"/><text class="b" x="422" y="407" text-anchor="middle">Argo CD</text><text class="r" x="422" y="422" text-anchor="middle">syncs Git</text>
+      <rect class="pod" x="484" y="388" width="104" height="40" rx="8"/><text class="b" x="536" y="407" text-anchor="middle">CoreDNS</text><text class="r" x="536" y="422" text-anchor="middle">names to IPs</text>
+      <text class="r" x="479" y="446" text-anchor="middle">pod placement above: one example</text>
+      <text class="r" x="370" y="468">on every node (DaemonSets)</text>
+      <rect class="pod" x="370" y="476" width="56" height="28" rx="6"/><text class="d" x="398" y="494" text-anchor="middle">aws-node</text>
+      <rect class="pod" x="432" y="476" width="66" height="28" rx="6"/><text class="d" x="465" y="494" text-anchor="middle">kube-proxy</text>
+      <rect class="pod" x="504" y="476" width="84" height="28" rx="6"/><text class="d" x="546" y="494" text-anchor="middle">node-exporter</text>
+      <rect class="out" x="370" y="520" width="218" height="48" rx="8"/>
+      <text class="b" x="479" y="540" text-anchor="middle">kubelet + containerd</text>
+      <text class="s" x="479" y="557" text-anchor="middle">Linux services (systemd)</text>
 
       <!-- node 2 -->
-      <rect class="you" x="665" y="215" width="300" height="345" rx="10"/>
-      <text class="t" x="681" y="238">Node 2: an EC2 VM</text>
-      <text class="s" x="681" y="255">same; autoscaler adds up to 4</text>
-      <rect class="pod" x="681" y="275" width="130" height="40" rx="8"/><text class="b" x="746" y="294" text-anchor="middle">frontend app</text><text class="r" x="746" y="309" text-anchor="middle">your app (nginx)</text>
-      <rect class="pod" x="821" y="275" width="130" height="40" rx="8"/><text class="b" x="886" y="294" text-anchor="middle">LB controller</text><text class="r" x="886" y="309" text-anchor="middle">builds the ALB</text>
-      <rect class="pod" x="681" y="325" width="130" height="40" rx="8"/><text class="b" x="746" y="344" text-anchor="middle">autoscaler</text><text class="r" x="746" y="359" text-anchor="middle">adds VMs as needed</text>
-      <rect class="pod" x="821" y="325" width="130" height="40" rx="8"/><text class="b" x="886" y="344" text-anchor="middle">Grafana</text><text class="r" x="886" y="359" text-anchor="middle">dashboards</text>
-      <text class="s" x="815" y="400" text-anchor="middle">a pod: 1 or more containers</text>
-      <text class="s" x="815" y="416" text-anchor="middle">sharing one IP address</text>
-      <rect class="out" x="681" y="490" width="270" height="52" rx="8"/>
-      <text class="b" x="816" y="511" text-anchor="middle">kubelet + containerd</text>
-      <text class="s" x="816" y="529" text-anchor="middle">kubelet asks the API server what to run</text>
+      <rect class="you" x="614" y="282" width="250" height="302" rx="10"/>
+      <text class="t" x="630" y="304">Node 2: an EC2 instance</text>
+      <text class="s" x="630" y="321">a peer: same template, same role</text>
+      <rect class="pod" x="630" y="338" width="104" height="40" rx="8"/><text class="b" x="682" y="357" text-anchor="middle">frontend app</text><text class="r" x="682" y="372" text-anchor="middle">nginx placeholder</text>
+      <rect class="pod" x="744" y="338" width="104" height="40" rx="8"/><text class="b" x="796" y="357" text-anchor="middle">LB controller</text><text class="r" x="796" y="372" text-anchor="middle">builds the ALB</text>
+      <rect class="pod" x="630" y="388" width="104" height="40" rx="8"/><text class="b" x="682" y="407" text-anchor="middle">autoscaler</text><text class="r" x="682" y="422" text-anchor="middle">adds nodes</text>
+      <rect class="pod" x="744" y="388" width="104" height="40" rx="8"/><text class="b" x="796" y="407" text-anchor="middle">Grafana</text><text class="r" x="796" y="422" text-anchor="middle">dashboards</text>
+      <text class="r" x="739" y="446" text-anchor="middle">pod placement above: one example</text>
+      <text class="r" x="630" y="468">on every node (DaemonSets)</text>
+      <rect class="pod" x="630" y="476" width="56" height="28" rx="6"/><text class="d" x="658" y="494" text-anchor="middle">aws-node</text>
+      <rect class="pod" x="692" y="476" width="66" height="28" rx="6"/><text class="d" x="725" y="494" text-anchor="middle">kube-proxy</text>
+      <rect class="pod" x="764" y="476" width="84" height="28" rx="6"/><text class="d" x="806" y="494" text-anchor="middle">node-exporter</text>
+      <rect class="out" x="630" y="520" width="218" height="48" rx="8"/>
+      <text class="b" x="739" y="540" text-anchor="middle">kubelet + containerd</text>
+      <text class="s" x="739" y="557" text-anchor="middle">asks the API server what to run</text>
+
+      <!-- room for nodes 3 and 4 -->
+      <rect class="slot" x="874" y="282" width="82" height="302" rx="10"/>
+      <text class="b" x="915" y="404" text-anchor="middle" style="font-weight:700">Node 3, 4</text>
+      <text class="s" x="915" y="426" text-anchor="middle">added only</text>
+      <text class="s" x="915" y="442" text-anchor="middle">when pods</text>
+      <text class="s" x="915" y="458" text-anchor="middle">don't fit:</text>
+      <text class="s" x="915" y="474" text-anchor="middle">Cluster</text>
+      <text class="s" x="915" y="490" text-anchor="middle">Autoscaler</text>
+      <text class="s" x="915" y="506" text-anchor="middle">raises the</text>
+      <text class="s" x="915" y="522" text-anchor="middle">ASG count</text>
 
       <!-- 1 request -->
-      <path class="req" d="M80,91 V246 H196" marker-end="url(#ar)"/>
-      <text class="lr" x="88" y="170">1 request</text>
-      <path class="req" d="M310,246 H340 V295 H366" marker-end="url(#ar)"/>
-      <path class="req" d="M340,265 H746 V275" marker-end="url(#ar)"/>
+      <path class="req" d="M80,91 V286 H191" marker-end="url(#ar)"/>
+      <text class="lr" x="88" y="190">1 request</text>
+      <path class="req" d="M315,286 H324 V358 H370" marker-end="url(#ar)"/>
+      <path class="req" d="M324,330 H682 V338" marker-end="url(#ar)"/>
 
       <!-- 2 deploy -->
-      <path class="dep" d="M150,345 H366" marker-end="url(#ar)"/>
-      <text class="ld" x="200" y="322">2 Argo CD</text>
-      <text class="ld" x="200" y="337">pulls Git</text>
+      <path class="dep" d="M150,408 H370" marker-end="url(#ar)"/>
+      <text class="ld" x="200" y="384">2 Argo CD</text>
+      <text class="ld" x="200" y="399">pulls Git</text>
 
       <!-- control plane link -->
-      <path class="api" d="M736,122 V215" marker-start="url(#ar)" marker-end="url(#ar)"/>
-      <text class="la" x="728" y="141" text-anchor="end">kubelets and controller pods all talk to the API server</text>
+      <path class="api" d="M575,122 V282" marker-start="url(#ar)" marker-end="url(#ar)"/>
+      <path class="api" d="M820,122 V282" marker-start="url(#ar)" marker-end="url(#ar)"/>
+      <text class="la" x="587" y="156">kubelets and pods talk to the API server</text>
 
       <!-- 3 build -->
       <path class="api" d="M312,63 H346" marker-end="url(#ar)"/>
-      <path class="bld" d="M241,110 V150" marker-end="url(#ar)"/>
-      <text class="lb" x="249" y="137">3 builds</text>
+      <path class="bld" d="M241,110 V176" marker-end="url(#ar)"/>
+      <text class="lb" x="249" y="148">3 builds</text>
     </svg>
   </figure>
 </div>
 
 <div class="key">
+  <span class="k-clu">the Kubernetes cluster</span>
   <span class="k-aws">AWS runs it, you never log in</span>
-  <span class="k-you">AWS resources you create and pay for (VMs, load balancer)</span>
-  <span class="k-pod">containers (pods), placed and restarted by Kubernetes</span>
+  <span class="k-you">AWS resources in your account, you pay for them</span>
+  <span class="k-asg">Auto Scaling Group</span>
+  <span class="k-pod">pods, placed and restarted by Kubernetes</span>
   <span class="k-out">outside, or plain Linux services</span>
 </div>
-<p class="note">Which pod lands on which node is the scheduler's choice; this is one example. Dashed purple: talks to the API server.</p>
+<p class="note">Which pod lands on which node is the scheduler's choice at that moment; the placement shown is one example, and it changes when pods restart or nodes are replaced. Only the DaemonSet row is on every node by design. Node 1 and Node 2 are labels for the picture; real names look like <code>ip-10-0-17-42.ap-southeast-2.compute.internal</code>. Dashed purple: talks to the API server.</p>
 
 <h2>Say it in 30 seconds</h2>
 <p class="say">"I built an EKS platform on AWS to learn what a platform support engineer looks after. Terraform builds the network, the cluster and the worker VMs. The apps run as containers on those VMs, and Kubernetes keeps them running. Argo CD deploys whatever is in Git. Prometheus and Grafana tell me when something is wrong. It is a lab, not production, and I tear it down after each session to keep the cost low."</p>
 
-<h2>What is actually what</h2>
-<p class="lead2">One rule ties it together: <b>everything talks to the API server, and only the API server talks to etcd.</b> The parts never call each other to coordinate. Each one watches the API server for its kind of work, does it, and writes the result back. The other lines in the picture are real traffic: user requests, metrics, name lookups, and calls out to AWS and GitHub.</p>
-<table>
-  <tr><th>Program</th><th>Its job</th><th>Talks to</th></tr>
-  <tr class="grp k-out"><td colspan="3">On your laptop</td></tr>
-  <tr><td>kubectl, helm</td><td>Your remote control for the cluster. kubectl also tunnels to Grafana and Argo CD (port-forward): neither has a public address.</td><td>The API server only</td></tr>
-  <tr><td>Terraform</td><td>Builds the AWS parts: VPC, control plane, node group, IAM roles.</td><td>AWS APIs. Creates nothing inside Kubernetes in this repo.</td></tr>
-  <tr class="grp k-aws"><td colspan="3">AWS control plane <span>VMs AWS runs in its own account</span></td></tr>
-  <tr><td>API server</td><td>The front door and the hub. Checks who you are and what you may do, then stores the change.</td><td>Everyone talks to it. It talks to etcd.</td></tr>
-  <tr><td>etcd</td><td>The database: what should exist, and what does.</td><td>Only the API server</td></tr>
-  <tr><td>scheduler</td><td>Picks a node for each new pod, by the room the pod asks for.</td><td>Watches the API server for pods with no node; writes its choice back</td></tr>
-  <tr><td>controller manager</td><td>Small loops that make reality match the records. A Deployment wants 2 pods and 1 exists: it creates the second.</td><td>Watches and writes through the API server</td></tr>
-  <tr class="grp k-you"><td colspan="3">On every node VM <span>Linux services, started by systemd</span></td></tr>
-  <tr><td>kubelet</td><td>The node's agent. Runs the pods assigned to this node, runs their health checks, reports back.</td><td>Asks the API server what to run; tells containerd to do it</td></tr>
-  <tr><td>containerd</td><td>Pulls images, starts and stops containers. The node's version of Docker engine.</td><td>Takes orders from kubelet. Pulls images from Docker Hub through the NAT gateway.</td></tr>
-  <tr class="grp k-pod"><td colspan="3">On the nodes, as pods <span>A pod is one or more containers sharing an IP; a container is a Linux process made from an image. The scheduler places these like any app.</span></td></tr>
-  <tr><td>Argo CD</td><td>Makes the cluster match Git: the app chart and the monitoring stack.</td><td>Reads GitHub; writes to the API server</td></tr>
-  <tr><td>CoreDNS</td><td>The cluster's phone book: turns Service names into IPs. Installed by EKS, not by this repo.</td><td>Every pod asks it; it watches the API server for Services</td></tr>
-  <tr><td>Prometheus</td><td>Collects metrics and checks the alert rules. Keeps 24 hours; lost if its pod restarts.</td><td>Finds targets through the API server, then pulls metrics from them directly; alerts go to Alertmanager</td></tr>
-  <tr><td>Grafana</td><td>Dashboards. Reached with kubectl port-forward.</td><td>Queries Prometheus</td></tr>
-  <tr><td>Cluster Autoscaler</td><td>Adds a VM when pods cannot fit; removes one that sits nearly empty.</td><td>Watches the API server for waiting pods; calls AWS Auto Scaling with its own IAM role</td></tr>
-  <tr><td>LB controller</td><td>Turns the Ingress into a real AWS load balancer and keeps its targets current.</td><td>Watches the API server; calls the AWS load balancer API with its own IAM role</td></tr>
-  <tr><td>metrics-server</td><td>Live CPU and memory per pod, for the pod autoscaler and <code>kubectl top</code>.</td><td>Reads each kubelet; answers through the API server</td></tr>
-</table>
+<h2>The cluster, and what sits around it</h2>
+<p class="lead2">The <b>Kubernetes cluster</b> is two things: the control plane, and the worker nodes registered with it. The VPC, the load balancer, the NAT gateway and the Auto Scaling Group are AWS infrastructure the cluster sits in or depends on. They are not part of Kubernetes, and Kubernetes cannot see most of them.</p>
+<div class="tw"><table>
+  <tr><th>Thing</th><th>In the cluster?</th><th>Made by</th><th>Operated by</th></tr>
+  <tr><td><span class="dot" style="--c:var(--aws)"></span>Control plane</td><td><span class="yes">Yes</span>: the brain</td><td class="by">EKS, when Terraform asks for a cluster</td><td class="by">AWS: patches, scales, replaces it</td></tr>
+  <tr><td><span class="dot" style="--c:var(--you)"></span>Worker nodes</td><td><span class="yes">Yes</span>, once kubelet registers them</td><td class="by">The Auto Scaling Group launches the EC2 instances</td><td class="by">You: OS version, size, count. Kubernetes decides what runs on them.</td></tr>
+  <tr><td><span class="dot" style="--c:var(--you)"></span>Auto Scaling Group</td><td><span class="no">No</span>: makes and replaces nodes</td><td class="by">EKS, for the managed node group Terraform defines</td><td class="by">EKS and the Cluster Autoscaler change its count</td></tr>
+  <tr><td><span class="dot" style="--c:var(--you)"></span>VPC, subnets, NAT gateway</td><td><span class="no">No</span>: the network it sits in</td><td class="by">Terraform</td><td class="by">AWS runs them; you own the config</td></tr>
+  <tr><td><span class="dot" style="--c:var(--you)"></span>Load balancer (ALB)</td><td><span class="no">No</span>: in front of it</td><td class="by">The LB controller, from the app's Ingress. Not Terraform.</td><td class="by">AWS runs it; the LB controller keeps its targets current</td></tr>
+  <tr><td><span class="dot" style="--c:var(--you)"></span>IAM roles, OIDC provider, KMS key, ECR</td><td><span class="no">No</span>: identity, encryption, images</td><td class="by">Terraform</td><td class="by">AWS</td></tr>
+</table></div>
+<p class="note">Why it matters: <code>terraform destroy</code> only removes what Terraform made. The ALB was made by a pod, so it must be deleted from inside the cluster first, or it blocks VPC deletion.</p>
+
+<h2>Where each program runs</h2>
+<p class="lead2">One rule ties it together: <b>everything talks to the API server, and only the API server talks to etcd.</b> The parts never call each other to coordinate. Each one watches the API server for its kind of work, does it, and writes the result back. Software here runs in one of three places: AWS-run control-plane processes, Linux services on each EC2 node, or pods.</p>
+<div class="tw"><table>
+  <tr><th>Program</th><th>Its job</th><th>Installed by</th><th>Talks to</th></tr>
+  <tr class="grp k-out"><td colspan="4">On your laptop</td></tr>
+  <tr><td>kubectl, helm</td><td>Your remote control for the cluster. kubectl also tunnels to Grafana and Argo CD (port-forward): neither has a public address.</td><td class="by">You</td><td>The API server only</td></tr>
+  <tr><td>Terraform</td><td>Builds the AWS parts: VPC, cluster, node group, IAM roles.</td><td class="by">You</td><td>AWS APIs. Creates nothing inside Kubernetes in this repo.</td></tr>
+  <tr class="grp k-aws"><td colspan="4">AWS-managed control plane <span>processes AWS runs in its own account; you never see a pod or VM for them</span></td></tr>
+  <tr><td>API server</td><td>The front door and the hub. Checks who you are and what you may do, then stores the change.</td><td class="by">EKS</td><td>Everyone talks to it. It talks to etcd.</td></tr>
+  <tr><td>etcd</td><td>The database: what should exist, and what does.</td><td class="by">EKS</td><td>Only the API server</td></tr>
+  <tr><td>scheduler</td><td>Decides <b>where</b>: picks a node for each new pod, by the room the pod asks for.</td><td class="by">EKS</td><td>Watches for pods with no node; writes its choice back</td></tr>
+  <tr><td>controller manager</td><td>Decides <b>how many</b>: small loops that make reality match the records. A Deployment wants 3 pods and 2 exist: it creates the third.</td><td class="by">EKS</td><td>Watches and writes through the API server</td></tr>
+  <tr class="grp k-you"><td colspan="4">Linux services on each EC2 node <span>started by systemd, not pods</span></td></tr>
+  <tr><td>kubelet</td><td>The node's agent. Runs the pods assigned to this node, runs their health checks, reports back.</td><td class="by">In the EKS AL2023 image; nodeadm configures it at boot</td><td>Asks the API server what to run; tells containerd to do it</td></tr>
+  <tr><td>containerd</td><td>Pulls images, starts and stops containers. The node's version of Docker engine.</td><td class="by">In the EKS AL2023 image</td><td>Takes orders from kubelet. Pulls images through the NAT gateway.</td></tr>
+  <tr class="grp k-pod"><td colspan="4">Pods on every node (DaemonSets) <span>one copy per node, by design</span></td></tr>
+  <tr><td>aws-node</td><td>The VPC CNI: gives each pod a real VPC IP.</td><td class="by">EKS default</td><td>The API server; AWS EC2 API for addresses</td></tr>
+  <tr><td>kube-proxy</td><td>Turns Services into iptables rules on its node.</td><td class="by">EKS default</td><td>Watches the API server for Services</td></tr>
+  <tr><td>node-exporter</td><td>Node CPU, memory and disk metrics for Prometheus.</td><td class="by">Argo CD (monitoring app)</td><td>Scraped by Prometheus</td></tr>
+  <tr class="grp k-pod"><td colspan="4">Pods placed by the scheduler <span>could land on any node with room. A pod is one or more containers sharing an IP; a container is a Linux process made from an image.</span></td></tr>
+  <tr><td>CoreDNS</td><td>The cluster's phone book: turns Service names into IPs.</td><td class="by">EKS default</td><td>Every pod asks it; it watches the API server for Services</td></tr>
+  <tr><td>Argo CD</td><td>Makes the cluster match Git: the app chart and the monitoring stack.</td><td class="by">setup-argocd.sh (kubectl)</td><td>Reads GitHub; writes to the API server</td></tr>
+  <tr><td>LB controller</td><td>Turns the Ingress into a real AWS load balancer and keeps its targets current.</td><td class="by">setup-argocd.sh (helm)</td><td>Watches the API server; calls the AWS load balancer API with its own IAM role</td></tr>
+  <tr><td>Cluster Autoscaler</td><td>Adds a node when pods cannot fit; removes one that sits nearly empty.</td><td class="by">setup-argocd.sh (helm)</td><td>Watches for waiting pods; calls AWS Auto Scaling with its own IAM role</td></tr>
+  <tr><td>metrics-server</td><td>Live CPU and memory per pod, for the pod autoscaler and <code>kubectl top</code>.</td><td class="by">setup-argocd.sh (helm)</td><td>Reads each kubelet; answers through the API server</td></tr>
+  <tr><td>Prometheus, Grafana</td><td>Metrics, alert rules, dashboards. Prometheus keeps 24 hours; lost if its pod restarts.</td><td class="by">Argo CD (monitoring app); the Prometheus pod itself via the Prometheus operator</td><td>Prometheus finds targets through the API server, then pulls metrics directly. Grafana queries Prometheus.</td></tr>
+  <tr><td>frontend</td><td>The app: an nginx placeholder, 2 to 10 pods.</td><td class="by">Argo CD (frontend app)</td><td>Receives traffic from the ALB</td></tr>
+</table></div>
+
+<p class="lead2"><b>Self-managed clusters look different.</b> On EKS the control plane is invisible. Build a cluster yourself (for example with kubeadm) and the control plane runs on your own nodes as <b>static pods</b>: the kubelet on each control-plane node starts the YAML files in <code>/etc/kubernetes/manifests</code> directly, without the scheduler.</p>
+<div class="tw"><table>
+  <tr><th></th><th>EKS (this project)</th><th>Self-managed, e.g. kubeadm</th></tr>
+  <tr><td>API server, scheduler, controller manager</td><td>AWS-run processes in AWS's account. You see one HTTPS endpoint.</td><td>Static pods on your control-plane nodes, run by their kubelet</td></tr>
+  <tr><td>etcd</td><td>AWS runs and backs it up</td><td>Static pod or separate machines; you back it up</td></tr>
+  <tr><td><code>kubectl get pods -n kube-system</code></td><td>aws-node, kube-proxy, CoreDNS, and the controllers you installed</td><td>Also <code>kube-apiserver-&lt;node&gt;</code>, <code>etcd-&lt;node&gt;</code> and the rest, shown as mirror pods</td></tr>
+  <tr><td>Control plane upgrades</td><td>AWS does them; you choose when</td><td>You do them</td></tr>
+</table></div>
 
 <details>
   <summary>Under the hood: what a container really is</summary>
@@ -292,14 +385,14 @@ pre code { background: none; padding: 0; }
 <details>
   <summary>Under the hood: the control plane is VMs too, just not yours</summary>
   <div class="in">
-    <p>Per AWS docs: each cluster gets its own control plane, with at least two API server instances and three etcd instances spread over three Availability Zones, in an AWS-owned account. AWS patches, scales and replaces them.</p>
+    <p>Per AWS docs: each cluster gets its own control plane, with at least two API server instances and three etcd instances spread over three Availability Zones, in an AWS-owned account. AWS patches, scales and replaces them. How AWS packages those processes is not visible to you.</p>
     <p>You never see those VMs. You see one HTTPS endpoint. In this project it is reachable from the internet, so <code>kubectl</code> works from your laptop.</p>
   </div>
 </details>
 <details>
   <summary>Under the hood: how a pod gets an IP</summary>
   <div class="in">
-    <p>The VPC CNI plugin gives each pod a real IP from the VPC, attached as an extra address on the node's network card (ENI). So pods are directly reachable inside the VPC, and the ALB can send traffic straight to them.</p>
+    <p>The VPC CNI plugin (the aws-node pod) gives each pod a real IP from the VPC, attached as an extra address on the node's network card (ENI). So pods are directly reachable inside the VPC, and the ALB can send traffic straight to them.</p>
     <p>Containers in the same pod share one network namespace: one IP, and they reach each other on <code>localhost</code>.</p>
   </div>
 </details>
@@ -311,25 +404,132 @@ pre code { background: none; padding: 0; }
   </div>
 </details>
 
-<h2>Where the VMs actually run</h2>
-<table>
+<h2>One missing replica: controllers, scheduler, kubelet</h2>
+<p class="lead2">Three different jobs, each watching the API server. Example: the Deployment <code>frontend</code> now wants 3 pods (the pod autoscaler raised it) and 2 exist. The pod record in etcd changes at each step.</p>
+<div class="seq">
+  <div class="st" style="--c:var(--aws)">
+    <div class="who">Controllers (controller manager)</div>
+    <h3>How many: create the record</h3>
+    <p>The ReplicaSet controller counts 2 of 3 and writes a new Pod object. It starts nothing and picks no node.</p>
+    <div class="rec">pod frontend-6d4f-x2k<br>node: <span class="none">(none)</span><br>status: <b>Pending</b></div>
+  </div>
+  <div class="st" style="--c:var(--aws)">
+    <div class="who">Scheduler</div>
+    <h3>Where: pick a node</h3>
+    <p>Sees a pod with no node. Keeps the nodes with 0.1 CPU and 128 MB free (what the pod asks for), scores them, writes its choice. It starts nothing either.</p>
+    <div class="rec">pod frontend-6d4f-x2k<br>node: <b>node 2</b><br>status: Pending</div>
+  </div>
+  <div class="st" style="--c:var(--you)">
+    <div class="who">kubelet + containerd on node 2</div>
+    <h3>Run it</h3>
+    <p>kubelet sees a pod bound to its node, asks containerd to pull <code>nginx:alpine</code> and start it. aws-node gives it an IP. Once the readiness check passes, the ALB starts sending it traffic.</p>
+    <div class="rec">pod frontend-6d4f-x2k<br>node: node 2<br>status: <b>Running, Ready</b></div>
+  </div>
+</div>
+<p class="note">Pod and node names are illustrative. If no node has room, the record stays at step 1 with no node, and that Pending pod is what the Cluster Autoscaler reacts to.</p>
+
+<h2 id="boot">From an empty account to a running app</h2>
+<p class="lead2">Six stages. You start two of them; the rest follow on their own. Each one creates something the next one needs.</p>
+<div class="boot">
+  <div class="st" style="--c:var(--you)">
+    <div class="who"><span class="tag">you run</span> Terraform</div>
+    <h3>AWS infrastructure</h3>
+    <ul>
+      <li>VPC, 6 subnets, internet gateway, NAT gateway and its IP, flow logs</li>
+      <li>IAM roles: cluster, nodes, and one each for the LB controller, Cluster Autoscaler and EBS CSI driver (not installed)</li>
+      <li>KMS key, ECR repositories, the EKS cluster request, OIDC provider, your admin access entry</li>
+      <li>Launch template and the managed node group <code>main</code>: min 1, desired 2, max 4</li>
+    </ul>
+    <div class="where"><code>scripts/deploy-infrastructure.sh</code>, <code>infrastructure/*.tf</code>. About 84 resources.</div>
+  </div>
+  <div class="st" style="--c:var(--aws)">
+    <div class="who"><span class="tag">automatic</span> EKS</div>
+    <h3>Control plane</h3>
+    <p>Builds API server, etcd, scheduler and controller manager in AWS's account, and gives the cluster an HTTPS endpoint.</p>
+    <p>Installs its default add-ons as plain Kubernetes objects: aws-node, kube-proxy, CoreDNS. This repo sets no <code>cluster_addons</code>, so these are EKS's defaults.</p>
+    <div class="where">AWS's account. The add-ons live in <code>kube-system</code>.</div>
+  </div>
+  <div class="st" style="--c:var(--you)">
+    <div class="who"><span class="tag">automatic</span> EKS, Auto Scaling, EC2</div>
+    <h3>Nodes join</h3>
+    <p>For node group <code>main</code>, EKS creates an Auto Scaling Group. It launches 2 Spot instances from Terraform's launch template. At boot, nodeadm configures kubelet, which registers with the API server using the node IAM role.</p>
+    <p>A node turns Ready once aws-node has set up pod networking. Only then can CoreDNS start.</p>
+    <div class="where">Your account, private subnets.</div>
+  </div>
+  <div class="st" style="--c:var(--out)">
+    <div class="who"><span class="tag">you run</span> kubectl and helm</div>
+    <h3>Cluster add-ons and Argo CD</h3>
+    <ul>
+      <li>kubectl: Argo CD v3.5.5 from its upstream manifest</li>
+      <li>kubectl: the two IRSA service accounts, the Grafana admin secret</li>
+      <li>helm: LB controller, metrics-server, Cluster Autoscaler</li>
+      <li>kubectl: the Argo CD project and the two Applications</li>
+    </ul>
+    <div class="where"><code>scripts/setup-argocd.sh</code>. Pods in <code>argocd</code> and <code>kube-system</code>.</div>
+  </div>
+  <div class="st" style="--c:var(--dep)">
+    <div class="who"><span class="tag">automatic</span> Argo CD</div>
+    <h3>Apps from Git</h3>
+    <p>Pulls GitHub <code>HEAD</code> and applies:</p>
+    <ul>
+      <li><code>frontend</code>: Deployment, Service, Ingress, pod autoscaler from <code>helm-charts/frontend</code></li>
+      <li><code>monitoring</code>: kube-prometheus-stack 51.2.0 with <code>monitoring/prometheus-values.yaml</code></li>
+    </ul>
+    <div class="where">Namespaces <code>portfolio-apps</code> and <code>monitoring</code>. Keeps checking every few minutes.</div>
+  </div>
+  <div class="st" style="--c:var(--pod)">
+    <div class="who"><span class="tag">automatic</span> Controllers in the cluster</div>
+    <h3>Pods and the load balancer</h3>
+    <p>Controllers, scheduler and kubelets start the pods (previous section). The LB controller sees the Ingress and, with its own IAM role, creates the ALB, its target group and security groups. Then the app is reachable.</p>
+    <div class="where">ALB in the public subnets. Terraform does not know it exists.</div>
+  </div>
+</div>
+<details>
+  <summary>Under the hood: why two tools before Argo CD</summary>
+  <div class="in">
+    <p>Each layer needs the one before it. Terraform cannot install pods until a cluster exists, and in this repo it does not try: it has no Kubernetes or Helm provider. Argo CD cannot install itself, and the LB controller needs its IAM role from Terraform before it can call AWS. So the bottom layer is applied by hand with kubectl and helm, and Argo CD takes over from there.</p>
+    <p>The IAM roles for the controllers trust the cluster's OIDC issuer. Terraform creates the roles; the service accounts that name them are created by <code>setup-argocd.sh</code>. Neither works without the other.</p>
+    <p>Seen in <code>terraform plan</code> on 2026-10-19: 84 to add, including 1 <code>aws_eks_cluster</code>, 1 <code>aws_eks_node_group</code>, 1 <code>aws_launch_template</code>, 6 <code>aws_iam_role</code>, 6 <code>aws_subnet</code>, 1 <code>aws_nat_gateway</code>. No Auto Scaling Group and no load balancer: EKS and the LB controller make those.</p>
+  </div>
+</details>
+
+<h2>Node group, Auto Scaling Group, nodes</h2>
+<p class="lead2">Terraform never creates an EC2 instance directly. It defines a <b>managed node group</b>; everything below that is automatic.</p>
+<div class="chain">
+  <div class="c" style="--c:var(--out)"><b>Terraform</b>node group <code>main</code>: Spot, AL2023, min 1, desired 2, max 4, plus a launch template</div>
+  <span class="arr" aria-hidden="true">→</span>
+  <div class="c" style="--c:var(--aws)"><b>EKS</b>creates and manages an Auto Scaling Group for it</div>
+  <span class="arr" aria-hidden="true">→</span>
+  <div class="c" style="--c:var(--you)"><b>Auto Scaling Group</b>launches EC2 instances; replaces any that fail or are reclaimed</div>
+  <span class="arr" aria-hidden="true">→</span>
+  <div class="c" style="--c:var(--you)"><b>EC2 instance</b>boots; kubelet registers it with the API server</div>
+  <span class="arr" aria-hidden="true">→</span>
+  <div class="c" style="--c:var(--pod)"><b>Node</b>appears in <code>kubectl get nodes</code>; the scheduler can use it</div>
+</div>
+<ul class="tight">
+  <li><b>Peers, not roles.</b> Every node comes from the same launch template with the same IAM role. No primary, no standby, no node reserved for monitoring. Any pod can land on any node with room.</li>
+  <li><b>Replaced, not repaired.</b> If AWS takes back a Spot instance, the Auto Scaling Group launches a new one, which joins as a new node. The lost pods are recreated by their controllers wherever there is room.</li>
+  <li><b>More capacity.</b> When pods are Pending, the Cluster Autoscaler raises the Auto Scaling Group's desired count, up to 4. When a node sits nearly empty, it moves the pods off and lowers the count. Terraform ignores the desired count after creation, so a later apply does not undo this.</li>
+</ul>
+
+<div class="tw" style="margin-top:14px"><table>
   <tr><th>Level</th><th>Whose</th><th>Can you see it</th></tr>
   <tr><td><span class="dot" style="--c:var(--aws)"></span>Control plane VMs</td><td>AWS's account</td><td>No. Only its API address.</td></tr>
-  <tr><td><span class="dot" style="--c:var(--you)"></span>Node VMs</td><td>Your account, in your private subnets. Terraform asks for them.</td><td>Yes: in the EC2 console, and you can log in with SSM. You pay for them.</td></tr>
+  <tr><td><span class="dot" style="--c:var(--you)"></span>Node VMs</td><td>Your account, in your private subnets</td><td>Yes: in the EC2 console, and you can log in with SSM. You pay for them.</td></tr>
   <tr><td><span class="dot" style="--c:var(--out)"></span>Physical servers under both</td><td>AWS</td><td>No, same as any EC2 instance.</td></tr>
-</table>
+</table></div>
 <p class="lead2"><b>Managed node group vs Fargate.</b> This project uses a <b>managed node group</b>: the worker VMs are your EC2 instances, and AWS helps by creating, upgrading and draining them. With <b>Fargate</b> there are no nodes for you at all: AWS runs each pod on a VM you never see, and you pay per pod. Less to look after, less control: no logging in to a node, no DaemonSets. This project does not use Fargate.</p>
 <details>
-  <summary>Under the hood: how Terraform turns into EC2 instances</summary>
+  <summary>Under the hood: the node group in Terraform</summary>
   <div class="in">
-    <p>Terraform (<code>infrastructure/eks.tf</code>) asks EKS for a managed node group: t3.medium, Spot, Amazon Linux 2023, minimum 1, normally 2, maximum 4.</p>
-    <p>EKS then creates an <b>Auto Scaling Group</b> and a launch template in your account. The Auto Scaling Group launches the EC2 instances. When a node boots, its kubelet registers with the API server and it becomes a node.</p>
+    <p><code>infrastructure/eks.tf</code>, node group <code>main</code>: <code>t3.medium</code> or <code>t3a.medium</code> (same CPU and memory, so the autoscaler can size the group; two types give Spot more capacity to draw from), Spot, Amazon Linux 2023, 50 GiB gp3 root disk, private subnets.</p>
+    <p>The Terraform EKS module creates the launch template (disk, instance metadata settings) and the node group. EKS creates the Auto Scaling Group from them. Terraform also tags that group so the Cluster Autoscaler can find it.</p>
     <p>Under each instance is AWS hardware running AWS's hypervisor (Nitro). That layer is the same for every EC2 instance and is never visible to you.</p>
   </div>
 </details>
 
 <h2>Docker on a VM vs this project</h2>
-<table>
+<div class="tw"><table>
   <tr><th>When you want to</th><th>One VM with Docker</th><th>This project on EKS</th></tr>
   <tr><td>Run the app</td><td>You run a container on that VM</td><td>You describe what you want; Kubernetes picks a node</td></tr>
   <tr><td>App crashes</td><td>Restarts only if you set it up</td><td>Restarted automatically</td></tr>
@@ -340,7 +540,7 @@ pre code { background: none; padding: 0; }
   <tr><td>Reach it from the internet</td><td>Open a port on the VM</td><td>Ask for an Ingress; a load balancer is built for you</td></tr>
   <tr><td>Give it AWS access</td><td>The VM's role, shared by everything on it</td><td>Each app gets its own IAM role (IRSA)</td></tr>
   <tr><td>What stays the same</td><td colspan="2">Same images, same containers, same Linux. Kubernetes adds placing, healing, scaling and rolling out around them.</td></tr>
-</table>
+</table></div>
 
 <h2>More traffic: more pods, then more VMs</h2>
 <p class="lead2">Two separate decisions. <b>Kubernetes adds pods</b> when the app is busy. <b>AWS adds VMs</b> only when the new pods have nowhere to go.</p>
@@ -361,7 +561,7 @@ pre code { background: none; padding: 0; }
     <div class="who">Scheduler, then Cluster Autoscaler</div>
     <h3>No room left</h3>
     <div class="nodes"><div class="vm"><span class="pd"></span><span class="pd"></span><span class="pd"></span><span class="pd"></span></div><div class="vm"><span class="pd"></span><span class="pd"></span><span class="pd"></span><span class="pd"></span></div><div class="waiting"><span class="pd wait"></span>waiting</div></div>
-    <p>A new pod fits on no VM, so it waits (Pending). The Cluster Autoscaler sees the waiting pod and asks AWS for one more VM.</p>
+    <p>A new pod fits on no VM, so it waits (Pending). The Cluster Autoscaler sees the waiting pod and raises the Auto Scaling Group's count by one.</p>
   </div>
   <div class="st" style="--c:var(--you)">
     <div class="who">AWS Auto Scaling Group</div>
@@ -377,13 +577,13 @@ pre code { background: none; padding: 0; }
   </div>
 </div>
 
-<table style="margin-top:14px">
+<div class="tw" style="margin-top:14px"><table>
   <tr><th>Who</th><th>Watches</th><th>Decides</th><th>Limits in this project</th></tr>
   <tr><td><span class="dot" style="--c:var(--pod)"></span>Pod autoscaler (HPA)</td><td>How busy the app pods are (CPU)</td><td>How many app pods</td><td>2 to 10 pods, aim for 80% CPU</td></tr>
   <tr><td><span class="dot" style="--c:var(--aws)"></span>Scheduler</td><td>New pods and free room on each VM</td><td>Which VM a pod goes on</td><td>Each pod asks for 0.1 CPU and 128 MB</td></tr>
   <tr><td><span class="dot" style="--c:var(--pod)"></span>Cluster Autoscaler</td><td>Pods waiting because nothing fits</td><td>How many VMs</td><td>Within the node group's 1 to 4</td></tr>
   <tr><td><span class="dot" style="--c:var(--out)"></span>Terraform</td><td>Nothing, it runs when you run it</td><td>The boundaries</td><td>Start at 2, never below 1, never above 4</td></tr>
-</table>
+</table></div>
 <p class="lead2">The line to remember: <b>the pod autoscaler watches CPU; the Cluster Autoscaler never looks at CPU, only at pods that do not fit.</b></p>
 
 <details>
@@ -394,7 +594,7 @@ pre code { background: none; padding: 0; }
     <p><b>Why Terraform does not undo the autoscaler.</b> The Cluster Autoscaler changes the Auto Scaling Group's desired count. The EKS Terraform module ignores changes to that number (<code>ignore_changes = [scaling_config[0].desired_size]</code>), so a later <code>terraform apply</code> leaves it alone. Terraform only owns the min and max.</p>
     <p><b>How the Cluster Autoscaler finds the VMs.</b> It looks for the Auto Scaling Group tagged <code>k8s.io/cluster-autoscaler/enabled</code> and <code>k8s.io/cluster-autoscaler/eks-portfolio-dev</code>, set in <code>infrastructure/eks.tf</code>, and uses its own IAM role to change the count.</p>
     <p><b>Timing</b> (upstream defaults, not tuned in this repo): the HPA checks about every 15 seconds and waits 5 minutes before scaling down. The Cluster Autoscaler checks about every 10 seconds and removes a VM that has been underused for about 10 minutes. A new EC2 node takes a few minutes to be ready.</p>
-    <p><b>What can go wrong.</b> At 4 VMs the Cluster Autoscaler stops, and extra pods stay Pending. Spot with one instance type: if AWS has no spare t3.medium Spot capacity, the new VM may not arrive. Honest lab note: 10 app pods ask for 1 CPU in total, so a third VM is only needed if the other pods (Argo CD, monitoring) already take most of the room.</p>
+    <p><b>What can go wrong.</b> At 4 VMs the Cluster Autoscaler stops, and extra pods stay Pending. Spot: if neither t3.medium nor t3a.medium Spot capacity is free, the new VM may not arrive. A pod that asks for more than one VM can hold never fits, and the Cluster Autoscaler does not add a VM for it. Honest lab note: 10 app pods ask for 1 CPU in total, so a third VM is only needed if the other pods (Argo CD, monitoring) already take most of the room.</p>
   </div>
 </details>
 
@@ -415,9 +615,7 @@ pre code { background: none; padding: 0; }
     <ol>
       <li>You merge a change in Git.</li>
       <li>Argo CD sees Git differs and sends the new version to the API server, which stores it in etcd.</li>
-      <li>The controller manager sees it and creates new pod records.</li>
-      <li>The scheduler gives each new pod a node.</li>
-      <li>That node's kubelet sees it; containerd pulls the image and starts it.</li>
+      <li>Controllers create new pod records; the scheduler gives each a node; that node's kubelet starts it.</li>
       <li>Once it is healthy, the ALB starts sending it traffic and an old pod is removed.</li>
     </ol>
     <p>Every step goes through the API server. Rollback is a Git revert.</p>
@@ -425,14 +623,40 @@ pre code { background: none; padding: 0; }
   <div class="flow" style="--c:var(--you)">
     <h3>3 A build</h3>
     <ol>
-      <li>From your laptop, Terraform creates the VPC, the control plane, the node group and IAM roles.</li>
-      <li>The node VMs boot and their kubelets register with the API server. EKS adds CoreDNS and the pod networking itself.</li>
-      <li>From your laptop, the setup script uses kubectl and helm to install Argo CD, the LB controller, metrics-server and the Cluster Autoscaler.</li>
-      <li>Argo CD deploys the app and the monitoring stack from Git.</li>
+      <li>Terraform builds the AWS parts and asks EKS for a cluster and a node group.</li>
+      <li>EKS builds the control plane; the Auto Scaling Group launches nodes, which register.</li>
+      <li>kubectl and helm install Argo CD and the controllers.</li>
+      <li>Argo CD deploys the app and monitoring from Git.</li>
     </ol>
-    <p>All of it is code, so it is torn down and rebuilt each session.</p>
+    <p>All six stages, and who does each: <a href="#boot">From an empty account to a running app</a>. All of it is code, so it is torn down and rebuilt each session.</p>
   </div>
 </div>
+
+<h3 style="margin:22px 0 8px;font-size:17px">The same deploy without Argo CD</h3>
+<div class="flows two">
+  <div class="flow" style="--c:var(--out)">
+    <h3>Direct: kubectl apply</h3>
+<pre><code>kubectl create namespace portfolio-apps
+helm template frontend helm-charts/frontend \
+  | kubectl apply -n portfolio-apps -f -</code></pre>
+    <ul>
+      <li>Your laptop sends the manifests to the API server once. From there the same controllers, scheduler and kubelets do the rest.</li>
+      <li>Nothing compares the cluster with Git afterwards. A manual edit stays. A file you delete leaves its resource running.</li>
+      <li>Whoever deploys needs credentials that can change the cluster.</li>
+    </ul>
+    <p>This repo does exactly this for the layer below Argo CD: <code>setup-argocd.sh</code> uses kubectl and helm.</p>
+  </div>
+  <div class="flow" style="--c:var(--dep)">
+    <h3>GitOps: Argo CD</h3>
+    <ul>
+      <li>Runs inside the cluster, pulls from Git, and applies through the same API server. The controllers, scheduler and kubelets do not know the difference.</li>
+      <li>Keeps comparing. Drift shows as OutOfSync; <code>selfHeal</code> puts manual edits back; <code>prune</code> deletes what Git removed. Both are on in this repo.</li>
+      <li>Deploy is a merge, rollback is a revert, history is the Git log. Nobody outside the cluster needs deploy credentials.</li>
+    </ul>
+    <p>The cost: one more system to run and upgrade, and a kubectl hotfix gets reverted unless it goes into Git.</p>
+  </div>
+</div>
+
 <details>
   <summary>Under the hood: how the parts talk</summary>
   <div class="in">
@@ -453,15 +677,15 @@ pre code { background: none; padding: 0; }
   <li><b>Talk as you go</b>, then <b>close it</b>: cause, fix, and one thing that stops it happening again.</li>
 </ol>
 
-<table style="margin-top:14px">
+<div class="tw" style="margin-top:14px"><table>
   <tr><th>What you see</th><th>Which box</th><th>What it usually means</th></tr>
   <tr><td>Site down, errors from the ALB</td><td>Load balancer</td><td>No healthy pods behind it: health check failing or wrong port</td></tr>
   <tr><td>New pods will not start after a deploy</td><td>Pod</td><td>The change: bad image name, or the app crashes on start. Roll back.</td></tr>
   <tr><td>Pods wait and never start</td><td>Node</td><td>No room on any node; autoscaler adding one or at its limit</td></tr>
   <tr><td>Pod keeps getting killed</td><td>Container</td><td>Using more memory than its limit</td></tr>
-  <tr><td>A node vanished</td><td>Node / AWS</td><td>Spot VM taken back by AWS; pods move to the other node</td></tr>
+  <tr><td>A node vanished</td><td>Node / AWS</td><td>Spot VM taken back by AWS; the Auto Scaling Group launches a replacement and pods are recreated elsewhere</td></tr>
   <tr><td>App gets "access denied" from AWS</td><td>AWS</td><td>Its IAM role is missing or lacks a permission</td></tr>
-</table>
+</table></div>
 <details>
   <summary>Under the hood: the command for each box</summary>
   <div class="in">
