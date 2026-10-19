@@ -4,9 +4,11 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
-  // Reviewed marks. Storage can throw (file:// policy, private mode, quota);
-  // the in-memory map keeps the page working for this session either way.
+  // Reviewed marks and checklist ticks. Storage can throw (file:// policy,
+  // private mode, quota); the in-memory map keeps the page working for this
+  // session either way.
   var PREFIX = 'eksstudy.reviewed.';
+  var TASK = 'eksstudy.task.';
   var mem = {};
   var store = null;
   try {
@@ -19,16 +21,36 @@
   function storeFailed() { store = null; $('.store-note').hidden = false; }
   if (!store) storeFailed();
 
-  function isReviewed(key) {
-    if (Object.prototype.hasOwnProperty.call(mem, key)) return mem[key];
-    try { return !!store && store.getItem(PREFIX + key) === '1'; } catch (e) { return false; }
+  function getItem(k) {
+    if (Object.prototype.hasOwnProperty.call(mem, k)) return mem[k];
+    try { return store ? store.getItem(k) : null; } catch (e) { return null; }
   }
-  function setReviewed(key, on) {
-    mem[key] = on;
+  function setItem(k, v) {
+    mem[k] = v;
     if (!store) return;
     try {
-      if (on) store.setItem(PREFIX + key, '1'); else store.removeItem(PREFIX + key);
+      if (v === null) store.removeItem(k); else store.setItem(k, v);
     } catch (e) { storeFailed(); }
+  }
+  function isReviewed(key) { return getItem(PREFIX + key) === '1'; }
+  function setReviewed(key, on) { setItem(PREFIX + key, on ? '1' : null); }
+
+  // A tick is keyed by its block id and its text, so editing the markdown
+  // only resets the items that changed. '0' records an unticked [x] item.
+  $$('input[data-task]').forEach(function (cb) {
+    var host = cb.closest('[id]');
+    cb.setAttribute('data-k', (host ? host.id : '') + '|' + cb.parentNode.textContent.trim().slice(0, 160));
+  });
+  function syncTasks() {
+    var boxes = $$('input[data-task]');
+    boxes.forEach(function (cb) {
+      var v = getItem(TASK + cb.getAttribute('data-k'));
+      cb.checked = v === null ? cb.defaultChecked : v === '1';
+    });
+    $$('.task-count').forEach(function (c) {
+      var mine = $$('input[data-task]', c.closest('.view'));
+      c.textContent = mine.length ? mine.filter(function (cb) { return cb.checked; }).length + '/' + mine.length + ' ticked' : '';
+    });
   }
 
   function syncReviewed() {
@@ -36,7 +58,7 @@
     $$('.nav a[data-key]').forEach(function (a) { a.classList.toggle('done', isReviewed(a.getAttribute('data-key'))); });
     $$('.nav .count').forEach(function (c) {
       var view = c.getAttribute('data-count');
-      var keys = view === 'spine' ? ['spine'] : $$('.nav a[href^="#' + view + '/"]').map(function (a) { return a.getAttribute('data-key'); });
+      var keys = view === 'spine' ? ['spine'] : $$('.nav a[data-key][href^="#' + view + '/"]').map(function (a) { return a.getAttribute('data-key'); });
       var done = keys.filter(isReviewed).length;
       c.textContent = keys.length ? done + '/' + keys.length : '';
     });
@@ -175,8 +197,24 @@
     if (b) b.setAttribute('aria-pressed', String(on));
   }
 
+  // Live session: a drill block holds break, triage and restore together, so
+  // each command line copies on its own. Comment and blank lines do not.
+  $$('.view[data-view="session"] .code code').forEach(function (code) {
+    code.innerHTML = code.innerHTML.split('\n').map(function (l) {
+      return /^\s*(#|$)/.test(l) ? l : '<span class="ln" title="Copy this line">' + l + '</span>';
+    }).join('\n');
+  });
+
   document.addEventListener('click', function (e) {
     var t = e.target;
+    var ln = t.closest('.ln');
+    if (ln && !String(window.getSelection())) {
+      copyText(ln.textContent.trim()).then(function (ok) {
+        ln.classList.add(ok ? 'ok' : 'fail');
+        setTimeout(function () { ln.classList.remove('ok', 'fail'); }, 900);
+      });
+      return;
+    }
     var copy = t.closest('.copy');
     if (copy) {
       var code = copy.parentNode.querySelector('code').textContent;
@@ -207,6 +245,16 @@
       $$('table.qa td.shown', view).forEach(function (td) { td.classList.remove('shown'); });
       return;
     }
+    var reset = t.closest('.reset-session');
+    if (reset) {
+      if (!window.confirm('Clear every tick and Done mark in the live session?')) return;
+      var sv = reset.closest('.view');
+      $$('input[data-task]', sv).forEach(function (cb) { setItem(TASK + cb.getAttribute('data-k'), null); });
+      $$('input[data-rev]', sv).forEach(function (cb) { setReviewed(cb.getAttribute('data-rev'), false); });
+      syncTasks();
+      syncReviewed();
+      return;
+    }
     var ans = t.closest('.qa-covered table.qa td:last-child');
     if (ans) { ans.classList.toggle('shown'); return; }
     var veil = t.closest('.veil');
@@ -224,6 +272,11 @@
 
   document.addEventListener('change', function (e) {
     var cb = e.target;
+    if (cb.matches('input[data-task]')) {
+      setItem(TASK + cb.getAttribute('data-k'), cb.checked ? '1' : '0');
+      syncTasks();
+      return;
+    }
     if (!cb.matches('input[data-rev]')) return;
     var key = cb.getAttribute('data-rev');
     setReviewed(key, cb.checked);
@@ -231,5 +284,6 @@
   });
 
   syncReviewed();
+  syncTasks();
   route();
 })();

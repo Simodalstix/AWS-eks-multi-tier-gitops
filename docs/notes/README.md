@@ -9,6 +9,7 @@
 |---|---|---|
 | `docs/notes/interview.md` | Interview (first, default view) | `##` section |
 | `docs/notes/how-it-works.md` | How it works | `##` section |
+| `docs/live-session.md` | Live session | `##` step, each `###` also gets a nav entry |
 | `docs/troubleshooting-spine.html` | Spine | the whole page, embedded unchanged |
 | `docs/adr/*.md` | Trade-offs | file (card) |
 | `runbooks/*.md` | Drills | file (card) |
@@ -58,6 +59,8 @@ Six required sections: Detect, Triage, Mitigate, Diagnose, Fix, Postmortem.
 - Fragments and tables, not prose. A block should fit on one screen.
 - A table whose last header is `Answer` gets a Cover answers toggle; click a
   covered cell to reveal it.
+- `- [ ] text` renders a checkbox the page remembers in browser storage.
+  Live session has a Reset button that clears its ticks and Done marks.
 - `[diagram: name]` alone on a line inlines `scripts/study/diagrams/name.html`,
   a hand-written HTML fragment styled by `scripts/study/study.css`. Its text is
   searchable. A missing file renders a placeholder and a build warning.

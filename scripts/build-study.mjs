@@ -15,6 +15,7 @@ const NOTES_DIR = join(ROOT, 'docs/notes');
 const LINUX_NOTE = 'linux-map';
 const HOW_NOTE = 'how-it-works';
 const INTERVIEW_NOTE = 'interview';
+const SESSION = join(ROOT, 'docs/live-session.md');
 const DIAGRAM_DIR = join(ROOT, 'scripts/study/diagrams');
 
 let out = join(ROOT, 'docs/study/index.html');
@@ -54,6 +55,7 @@ const HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/;
 const RULE = /^\s*([-*_])(\s*\1){2,}\s*$/;
 const LIST = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
 const QUOTE = /^\s*>/;
+const TASK = /^\[([ xX])\]\s+/;
 const DIAGRAM = /^\s*\[diagram:\s*([\w-]+)\]\s*$/;
 const TABLE_SEP = /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$/;
 const indentOf = (l) => l.match(/^\s*/)[0].length;
@@ -151,12 +153,17 @@ function list(lines, i) {
   const tag = ordered ? 'ol' : 'ul';
   const start = ordered && parseInt(first[2], 10) !== 1 ? ` start="${parseInt(first[2], 10)}"` : '';
   const lis = items.map((it) => {
-    let body = inline(it.text.join(' '));
+    const raw = it.text.join(' ');
+    // - [ ] item: a checkbox the page remembers (study.js)
+    const task = raw.match(TASK);
+    let body = task
+      ? `<label><input type="checkbox" data-task${task[1] === ' ' ? '' : ' checked'}><span>${inline(raw.slice(task[0].length))}</span></label>`
+      : inline(raw);
     if (it.rest.length) {
       const min = Math.min(...it.rest.filter((r) => r.trim()).map(indentOf));
       body += blocks(it.rest.map((r) => r.slice(Math.min(min, indentOf(r)))));
     }
-    return `<li>${body}</li>`;
+    return task ? `<li class="task">${body}</li>` : `<li>${body}</li>`;
   }).join('');
   return [`<${tag}${start}>${lis}</${tag}>`, i];
 }
@@ -208,6 +215,7 @@ const plain = (text) => text
   .replace(/^\s*(`{3,}|~{3,}).*$/gm, '')
   .replace(/^\s*\|?\s*:?-{3,}.*$/gm, '')
   .replace(/\\\|/g, '|')
+  .replace(/^(\s*[-*+]\s+)\[[ xX]\]\s+/gm, '$1')
   .replace(/[|*`#>]/g, ' ')
   .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
   .replace(/\s+/g, ' ')
@@ -256,7 +264,7 @@ function listMd(dir, skip = []) {
 
 const index = [];
 const domId = (s) => s.replace(/[^A-Za-z0-9_-]+/g, '-');
-const reviewBox = (key) => `<label class="rev"><input type="checkbox" data-rev="${esc(key)}"> Reviewed</label>`;
+const reviewBox = (key, label = 'Reviewed') => `<label class="rev"><input type="checkbox" data-rev="${esc(key)}"> ${label}</label>`;
 const missing = (label) => `<p class="missing">Missing: add <code>## ${esc(label)}</code> to the source.</p>`;
 
 function cardHead(doc, key, coverLabel) {
@@ -344,6 +352,38 @@ function renderNote(doc, view, group) {
     + `<div class="nblocks">${blocksHtml}</div></article>`;
 }
 
+// Live session checklist: one block per ## step, with each ### (D1, Drill 3)
+// as its own anchor, nav entry and search unit.
+function splitH3(lines) {
+  const parts = [{ heading: null, lines: [] }];
+  let fence = false;
+  for (const line of lines) {
+    if (FENCE.test(line)) fence = !fence;
+    if (!fence && /^###\s+/.test(line)) { parts.push({ heading: line.replace(/^###\s+/, '').trim(), lines: [] }); continue; }
+    parts[parts.length - 1].lines.push(line);
+  }
+  return parts.map((pt) => ({ ...pt, text: pt.lines.join('\n'), slug: pt.heading && slug(pt.heading) }));
+}
+const sessionId = (s, sub) => domId(`s-${s.slug}${sub ? `-${sub.slug}` : ''}`);
+function renderSession(doc) {
+  const blocksHtml = doc.sections.map((s) => {
+    const [head, ...subs] = splitH3(s.lines);
+    const id = sessionId(s);
+    index.push({ v: 'session', t: id, g: 'Live session', h: s.heading, x: plain(head.text) });
+    const subHtml = subs.map((sub) => {
+      const sid = sessionId(s, sub);
+      index.push({ v: 'session', t: sid, g: 'Live session', h: sub.heading, x: plain(sub.text) });
+      return `<div class="sub3" id="${sid}"><h3>${inline(sub.heading)}</h3>${md(sub.text)}</div>`;
+    }).join('');
+    return `<section class="nblock" id="${id}"><header><h2>${inline(s.heading)}</h2>${reviewBox(`session:${s.slug}`, 'Done')}</header><div class="md">${md(head.text)}${subHtml}</div></section>`;
+  }).join('');
+  return (doc.intro ? `<div class="md intro">${md(doc.intro)}</div>` : '') + `<div class="nblocks">${blocksHtml}</div>`;
+}
+const sessionItems = (docs) => docs.flatMap((d) => d.sections.flatMap((s) => [
+  { id: sessionId(s), key: `session:${s.slug}`, label: s.heading },
+  ...splitH3(s.lines).slice(1).map((sub) => ({ id: sessionId(s, sub), label: sub.heading, sub: true })),
+]));
+
 function spineIndex(html) {
   const text = (h) => h.replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ')
     .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/­/g, '')
@@ -380,11 +420,14 @@ const interviewNotes = notes.filter((d) => d.name === INTERVIEW_NOTE);
 const howNotes = notes.filter((d) => d.name === HOW_NOTE);
 const linuxNotes = notes.filter((d) => d.name === LINUX_NOTE);
 const conceptNotes = notes.filter((d) => ![LINUX_NOTE, HOW_NOTE, INTERVIEW_NOTE].includes(d.name));
+const sessionDocs = existsSync(SESSION) ? [parseDoc(SESSION)] : [];
+if (!sessionDocs.length) warn(SESSION, 'not found, Live session is empty');
 if (!howNotes.length) warn(join(NOTES_DIR, `${HOW_NOTE}.md`), 'not found, How it works is empty');
 if (!linuxNotes.length) warn(join(NOTES_DIR, `${LINUX_NOTE}.md`), 'not found, Linux map is empty');
 
 const interviewHtml = interviewNotes.map((d) => renderNote(d, 'interview', 'Interview')).join('');
 const howHtml = howNotes.map((d) => renderNote(d, 'how', 'How it works')).join('');
+const sessionHtml = sessionDocs.map(renderSession).join('');
 const adrHtml = adrs.map(renderAdr).join('');
 const rbHtml = runbooks.map(renderRunbook).join('');
 const linuxHtml = linuxNotes.map((d) => renderNote(d, 'linux', 'Linux map')).join('');
@@ -393,7 +436,7 @@ const conceptHtml = conceptNotes.map((d) => renderNote(d, 'concepts', 'Concepts'
 const empty = (what, tmpl) => `<p class="empty">No ${what} yet. Copy <code>${tmpl}</code> to a new file and rebuild.</p>`;
 
 const sub = (view, items) => (items.length
-  ? `<ul>${items.map((it) => `<li><a href="#${view}/${it.id}" data-target="${it.id}"${it.key ? ` data-key="${esc(it.key)}"` : ''}>${esc(it.label)}</a></li>`).join('')}</ul>`
+  ? `<ul>${items.map((it) => `<li${it.sub ? ' class="l3"' : ''}><a href="#${view}/${it.id}" data-target="${it.id}"${it.key ? ` data-key="${esc(it.key)}"` : ''}>${esc(it.label)}</a></li>`).join('')}</ul>`
   : '');
 const noteItems = (docs) => docs.flatMap((d) => d.sections.map((s) => ({
   id: domId(`n-${d.name}-${s.slug}`), key: `note:${d.name}#${s.slug}`, label: s.heading,
@@ -401,6 +444,7 @@ const noteItems = (docs) => docs.flatMap((d) => d.sections.map((s) => ({
 const navGroups = [
   { view: 'interview', label: 'Interview', items: noteItems(interviewNotes) },
   { view: 'how', label: 'How it works', items: noteItems(howNotes) },
+  { view: 'session', label: 'Live session', items: sessionItems(sessionDocs) },
   { sep: 'Reference' },
   { view: 'spine', label: 'Spine', items: [] },
   { view: 'adr', label: 'Trade-offs', items: adrs.map((d) => ({ id: domId(`adr-${d.name}`), key: `adr:${d.name}`, label: d.title.replace(/^ADR\s*/i, '') })) },
@@ -414,7 +458,7 @@ const viewHead = (title, subtitle, cover) => `<header class="view-head"><h1>${ti
   + (cover ? `<div class="ctl"><button type="button" class="btn cover-all" aria-pressed="false">Cover all</button></div>` : '')
   + '</header>';
 
-const sourceCount = 1 + adrs.length + runbooks.length + notes.length;
+const sourceCount = 1 + adrs.length + runbooks.length + notes.length + sessionDocs.length;
 const built = new Date().toLocaleDateString('en-CA');
 const json = JSON.stringify(index).replace(/</g, '\\u003c');
 
@@ -436,12 +480,13 @@ ${CSS}
   <div class="brand">EKS study</div>
   <input type="search" id="q" placeholder="Search all pages" aria-label="Search all pages" autocomplete="off" spellcheck="false">
   <ul class="nav">${navHtml}</ul>
-  <p class="store-note" hidden>Reviewed marks will not be saved: browser storage is unavailable.</p>
+  <p class="store-note" hidden>Marks and ticks will not be saved: browser storage is unavailable.</p>
   <p class="built">Built ${built} from ${sourceCount} sources</p>
 </nav>
 <main>
   <section class="view" data-view="interview"><header class="view-head"><h1>Interview track</h1><span class="sub">docs/notes/interview.md</span><div class="ctl"><button type="button" class="btn cover-qa" aria-pressed="false">Cover answers</button></div></header>${interviewHtml || empty('interview notes', 'docs/notes/README.md')}</section>
   <section class="view" data-view="how">${viewHead('How Kubernetes works', 'docs/notes/how-it-works.md, scripts/study/diagrams')}${howHtml || empty('How it works notes', 'docs/notes/README.md')}</section>
+  <section class="view" data-view="session"><header class="view-head"><h1>Live session</h1><span class="sub">docs/live-session.md. Click a command line to copy just that line.</span><div class="ctl"><span class="task-count"></span><button type="button" class="btn reset-session">Reset for a new session</button></div></header>${sessionHtml || empty('session checklist', 'docs/live-session.md')}</section>
   <section class="view" data-view="spine">
     <header class="view-head"><h1>Troubleshooting spine</h1><span class="sub">docs/troubleshooting-spine.html, embedded unchanged</span>
       <div class="ctl"><a class="btn" href="../troubleshooting-spine.html">Open standalone</a>${reviewBox('spine')}</div></header>
@@ -478,6 +523,7 @@ for (const [name, mod] of diagramMods) {
 console.log(`spine     ${rel(SPINE)} (${spineUnits} search units)`);
 console.log(`adr       ${adrs.length} ${adrs.map((d) => basename(d.file)).join(' ')}`);
 console.log(`runbooks  ${runbooks.length} ${runbooks.map((d) => basename(d.file)).join(' ')}`);
+console.log(`session   ${sessionDocs.map((d) => `${rel(d.file)} (${d.sections.length} sections)`).join('') || 'none'}`);
 console.log(`notes     ${notes.length} ${notes.map((d) => `${basename(d.file)} (${d.sections.length} sections)`).join(', ')}`);
 console.log(`diagrams  ${diagramsUsed.size} ${[...diagramsUsed].join(' ')}`);
 console.log(`svg       ${svgsWritten.join(', ') || 'none'}`);

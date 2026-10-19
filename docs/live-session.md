@@ -6,6 +6,7 @@ Run by hand, in order, from the repo root unless a step says otherwise. Region
 - **I run this**: apply, push, destroy. Billing or publishing actions.
 - **unverified**: written from repo files and docs, never run against a cluster.
   Everything from step C onward is unverified until you paste output back.
+- Rendered with tickable checkboxes and per-line copy: `scripts/build-study.sh`, then open `docs/study/index.html#session`.
 - Log the whole session: `mkdir -p ~/eks-sessions && script -f -a ~/eks-sessions/$(date +%F).log`, then `exit` at the end. Every command and its output lands in the file; write runbooks from it.
 - Scripts: `scripts/deploy-infrastructure.sh` (A and B), `scripts/setup-argocd.sh` (C), `scripts/drill.sh` (F), `scripts/teardown.sh` (G).
 
