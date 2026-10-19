@@ -12,6 +12,7 @@
   --pod: #1f8a7e; --pod-bg: #e2f3f0;
   --out: #6b7280; --out-bg: #eef0f2;
   --req: #2f6fdb; --dep: #2e9a4a;
+  --hit: #c0392b; --on-hit: #ffffff;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -21,6 +22,7 @@
     --pod: #4fc1b2; --pod-bg: #173230;
     --out: #9aa1aa; --out-bg: #262b31;
     --req: #6c9cf0; --dep: #5cc277;
+    --hit: #ef7b6c; --on-hit: #14171b;
   }
 }
 :root[data-theme="dark"] {
@@ -30,12 +32,20 @@
   --pod: #4fc1b2; --pod-bg: #173230;
   --out: #9aa1aa; --out-bg: #262b31;
   --req: #6c9cf0; --dep: #5cc277;
+  --hit: #ef7b6c; --on-hit: #14171b;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
 main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 64px; }
+/* mini nav, shared by the EKS pages */
+.eksnav { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+.eksnav div { max-width: 1180px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.eksnav b { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-right: 8px; }
+.eksnav a { padding: 4px 12px; border-radius: 6px; color: var(--ink); text-decoration: none; font-size: 15px; }
+.eksnav a:hover { background: var(--out-bg); }
+.eksnav a[aria-current="page"] { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-weight: 700; }
 h1 { font-size: 26px; margin: 0 0 4px; }
-h2 { font-size: 20px; margin: 40px 0 10px; padding-top: 12px; border-top: 1px solid var(--line); }
+h2 { font-size: 20px; margin: 40px 0 10px; padding-top: 12px; border-top: 1px solid var(--line); scroll-margin-top: 56px; }
 .lead { color: var(--muted); margin: 0 0 18px; }
 .pic { display: flex; gap: 16px; align-items: stretch; }
 .pic figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
@@ -56,9 +66,6 @@ svg .out { fill: var(--out-bg); stroke: var(--out); }
 svg .frame { fill: none; stroke: var(--you); stroke-dasharray: 5 4; }
 svg .asg { fill: none; stroke: var(--you); stroke-width: 1.5; stroke-dasharray: 1.5 4; stroke-linecap: round; }
 svg .slot { fill: none; stroke: var(--you); stroke-dasharray: 5 4; }
-svg .clu { fill: none; stroke: var(--pod); stroke-width: 2.5; stroke-dasharray: 11 5; }
-svg .lc { fill: var(--pod); font-weight: 700; font-size: 13px; }
-svg .lcs { fill: var(--pod); font-size: 10.5px; }
 svg rect { stroke-width: 1.5; }
 svg .req { stroke: var(--req); stroke-width: 2.5; fill: none; }
 svg .dep { stroke: var(--dep); stroke-width: 2.5; fill: none; }
@@ -70,7 +77,6 @@ svg .la { fill: var(--aws); font-weight: 700; font-size: 12px; }
 svg .lb { fill: var(--you); font-weight: 700; font-size: 13px; }
 .key { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 12px 0 0; font-size: 15px; }
 .key span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 2px solid var(--c); background: var(--cb); }
-.key .k-clu::before { border: 2px dashed var(--pod); background: none; }
 .key .k-asg::before { border: 2px dotted var(--you); background: none; }
 .k-aws { --c: var(--aws); --cb: var(--aws-bg); }
 .k-you { --c: var(--you); --cb: var(--you-bg); }
@@ -142,6 +148,52 @@ pre code { background: none; padding: 0; }
 .chain .arr { align-self: center; color: var(--muted); font-weight: 700; }
 ul.tight { margin: 0; padding-left: 22px; }
 ul.tight li { margin: 5px 0; }
+/* drill map */
+svg .obj { fill: var(--surface); stroke: var(--muted); stroke-dasharray: 4 3; }
+svg .bd-hit circle { fill: var(--hit); }
+svg .bd-hit text { fill: var(--on-hit); }
+svg .bd-maybe circle { fill: var(--surface); stroke: var(--hit); stroke-width: 2; }
+svg .bd-maybe text { fill: var(--hit); }
+svg .bd-no circle { fill: var(--ink); }
+svg .bd-no text { fill: var(--bg); }
+svg .bd text { font-size: 12px; font-weight: 700; }
+.drillmap { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin: 0; }
+.drillmap svg { width: 100%; height: auto; display: block; }
+.bd-key { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 10px 0 0; font-size: 15px; }
+.n { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; font-weight: 700; flex: none; }
+.n.hit { background: var(--hit); color: var(--on-hit); }
+.n.maybe { background: var(--surface); color: var(--hit); box-shadow: inset 0 0 0 2px var(--hit); }
+.n.no { background: var(--ink); color: var(--bg); }
+.drills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.dr { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.dr h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 16px; }
+.dr h3 code { font-size: 14px; }
+.dr dl { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 4px 10px; margin: 0; font-size: 14px; }
+.dr dt { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding-top: 2px; }
+.dr dd { margin: 0; min-width: 0; }
+.dr dd.cmd code { display: block; white-space: pre-wrap; overflow-wrap: anywhere; padding: 4px 7px; }
+.u-hit { color: var(--hit); font-weight: 700; }
+/* lanes: small left-to-right flows */
+.lane { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin: 6px 0 4px; }
+.lane .c { flex: 1 1 140px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 6px; padding: 6px 9px; font-size: 14px; min-width: 0; }
+.lane .c.dash { border-style: dashed; border-left-style: solid; }
+.lane .c b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--c); }
+.lane .c.bad { border-color: var(--hit); border-left-color: var(--hit); }
+.lane .c.bad b { color: var(--hit); }
+.lane .arr { align-self: center; color: var(--muted); font-weight: 700; }
+.lane-h { margin: 14px 0 0; font-size: 14px; font-weight: 700; color: var(--c); }
+.vis { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px 12px; margin-top: 12px; }
+.vis > h3 { margin: 0 0 2px; font-size: 17px; }
+.vis .note { margin: 8px 0 0; }
+.agree { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+.agree div { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; font-size: 14px; min-width: 0; overflow-wrap: anywhere; }
+.agree b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+@media (max-width: 860px) {
+  .drills, .agree { grid-template-columns: minmax(0, 1fr); }
+  .lane { flex-direction: column; }
+  .lane .arr { transform: rotate(90deg); align-self: flex-start; margin-left: 14px; }
+  .lane .c { flex-basis: auto; }
+}
 @media (max-width: 860px) {
   .scale, .boot, .seq, .flows, .flows.two { grid-template-columns: minmax(0, 1fr); }
   .pic { flex-direction: column; }
@@ -152,6 +204,12 @@ ul.tight li { margin: 5px 0; }
 </style>
 </head>
 <body>
+<nav class="eksnav" aria-label="EKS pages"><div>
+  <b>EKS lab</b>
+  <a href="/eks" target="_top" aria-current="page">At a glance</a>
+  <a href="/eks/playbook" target="_top">Playbook</a>
+  <a href="/eks/star" target="_top">STAR</a>
+</div></nav>
 <main>
 
 <h1>EKS at a glance</h1>
@@ -187,7 +245,7 @@ ul.tight li { margin: 5px 0; }
 
   <figure class="eks">
     <figcaption>This project: the same containers, run by Kubernetes on EKS</figcaption>
-    <svg viewBox="0 0 1000 640" role="img" aria-label="EKS architecture. The Kubernetes cluster, outlined, is the AWS-run control plane plus the registered worker nodes. The nodes sit in an Auto Scaling Group in private subnets of your VPC. The load balancer and NAT gateway are in public subnets, outside the cluster. Git and your laptop are outside AWS.">
+    <svg viewBox="0 0 1000 640" role="img" aria-label="EKS architecture. The Kubernetes cluster is the AWS-run control plane plus the registered worker nodes. The nodes sit in an Auto Scaling Group in private subnets of your VPC. The load balancer and NAT gateway are in public subnets, outside the cluster. Git and your laptop are outside AWS.">
       <defs>
         <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
       </defs>
@@ -212,11 +270,6 @@ ul.tight li { margin: 5px 0; }
       <rect class="aws" x="664" y="42" width="145" height="46" rx="6"/><text class="b" x="736" y="61" text-anchor="middle">scheduler</text><text class="r" x="736" y="78" text-anchor="middle">picks a node per pod</text>
       <rect class="aws" x="823" y="42" width="150" height="46" rx="6"/><text class="b" x="898" y="61" text-anchor="middle">controller manager</text><text class="r" x="898" y="78" text-anchor="middle">keeps counts right</text>
       <text class="s" x="346" y="109">AWS runs these processes. Everything goes through the API server; only it touches etcd.</text>
-
-      <!-- the Kubernetes cluster: control plane + registered nodes -->
-      <path class="clu" d="M324,4 H996 V130 H974 V604 H336 V130 H324 Z"/>
-      <text class="lc" x="342" y="147">Kubernetes cluster</text>
-      <text class="lcs" x="342" y="163">= control plane + registered nodes</text>
 
       <!-- your account -->
       <rect class="frame" x="170" y="176" width="820" height="452" rx="12"/>
@@ -295,12 +348,13 @@ ul.tight li { margin: 5px 0; }
       <!-- 2 deploy -->
       <path class="dep" d="M150,408 H370" marker-end="url(#ar)"/>
       <text class="ld" x="200" y="384">2 Argo CD</text>
-      <text class="ld" x="200" y="399">pulls Git</text>
+      <text class="ld" x="200" y="401">pulls Git</text>
 
       <!-- control plane link -->
       <path class="api" d="M575,122 V282" marker-start="url(#ar)" marker-end="url(#ar)"/>
       <path class="api" d="M820,122 V282" marker-start="url(#ar)" marker-end="url(#ar)"/>
-      <text class="la" x="587" y="156">kubelets and pods talk to the API server</text>
+      <text class="la" x="587" y="150">kubelets and pods</text>
+      <text class="la" x="587" y="166">talk to the API server</text>
 
       <!-- 3 build -->
       <path class="api" d="M312,63 H346" marker-end="url(#ar)"/>
@@ -311,7 +365,6 @@ ul.tight li { margin: 5px 0; }
 </div>
 
 <div class="key">
-  <span class="k-clu">the Kubernetes cluster</span>
   <span class="k-aws">AWS runs it, you never log in</span>
   <span class="k-you">AWS resources in your account, you pay for them</span>
   <span class="k-asg">Auto Scaling Group</span>
@@ -668,6 +721,96 @@ helm template frontend helm-charts/frontend \
   </div>
 </details>
 
+<h2 id="paths">Three paths people mix up</h2>
+
+<div class="vis">
+  <h3>A request, and the separate loop that keeps the ALB's target list current</h3>
+  <p class="lane-h" style="--c:var(--req)">Data path: what one request touches</p>
+  <div class="lane">
+    <div class="c" style="--c:var(--out)"><b>User</b>calls the ALB's DNS name with <code>Host: frontend.local</code></div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c" style="--c:var(--you)"><b>ALB listener</b>rule matches that host; other hosts get the controller's default 404 (unverified)</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c" style="--c:var(--you)"><b>Target: a pod IP</b><code>target-type: ip</code>. No Service IP, no kube-proxy on the way.</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c" style="--c:var(--pod)"><b>nginx container</b>answers on port 80</div>
+  </div>
+  <p class="lane-h" style="--c:var(--aws)">Control loop: who decides which pod IPs are targets</p>
+  <div class="lane">
+    <div class="c dash" style="--c:var(--you)"><b>kubelet</b>readiness check <code>GET /</code> every 5 s marks the pod Ready</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c dash" style="--c:var(--aws)"><b>EndpointSlice</b>for Service <code>frontend</code>: Ready pods its selector matches</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c dash" style="--c:var(--pod)"><b>LB controller</b>watches it, registers and drains IPs in the target group</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c dash" style="--c:var(--you)"><b>ALB health check</b>its own <code>GET /</code> to each IP; only healthy targets get traffic</div>
+  </div>
+  <p class="note">Two health checks, two owners: kubelet's readiness decides whether an IP becomes a target, the ALB's check decides whether a target gets traffic. Not in the data path: CoreDNS, kube-proxy, the Service's ClusterIP, the API server. That is why drill 7 (DNS) leaves the site up and drill 5 (selector) takes it down.</p>
+</div>
+
+<div class="vis">
+  <h3>IRSA: how the LB controller gets its own AWS role</h3>
+  <p class="lane-h" style="--c:var(--pod)">Working</p>
+  <div class="lane">
+    <div class="c" style="--c:var(--out)"><b>Service account</b><code>kube-system/aws-load-balancer-controller</code> annotated with the role ARN</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c" style="--c:var(--aws)"><b>EKS webhook, at pod creation</b>adds <code>AWS_ROLE_ARN</code> and a signed token file to the pod</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c" style="--c:var(--aws)"><b>STS</b>AssumeRoleWithWebIdentity: token issuer is the cluster's OIDC provider, subject is that service account</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c" style="--c:var(--pod)"><b>Elastic Load Balancing API</b>called as <code>eks-portfolio-dev-aws-load-balancer-controller</code>: allowed</div>
+  </div>
+  <p class="lane-h" style="--c:var(--hit)">Drill 8: annotation removed, pod restarted</p>
+  <div class="lane">
+    <div class="c bad"><b>Service account</b>no role ARN</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c bad"><b>New pod</b>no <code>AWS_ROLE_ARN</code>, no token file</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c bad"><b>AWS SDK falls back</b>to instance metadata. IMDSv2 hop limit 2 lets a pod reach it.</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c bad"><b>Elastic Load Balancing API</b>called as the node role: AccessDenied (unverified)</div>
+  </div>
+  <p class="lane-h" style="--c:var(--muted)">Three pieces that must agree. Each looks fine on its own.</p>
+  <div class="agree">
+    <div><b>OIDC provider</b>Terraform, <code>eks.tf</code> (EKS module)</div>
+    <div><b>Role trust policy</b>Terraform: <code>sub = system:serviceaccount:kube-system:aws-load-balancer-controller</code>, <code>aud = sts.amazonaws.com</code></div>
+    <div><b>Service account annotation</b><code>setup-argocd.sh</code>, from <code>terraform output</code></div>
+  </div>
+  <p class="note">The webhook only acts when a pod is created, so a fixed annotation needs a restart. <code>drill.sh</code> restarts the controller in both break and restore for that reason. The Cluster Autoscaler works the same way with its own role.</p>
+</div>
+
+<div class="vis">
+  <h3>kubectl and Argo CD: same API server, different owner afterwards</h3>
+  <p class="lane-h" style="--c:var(--out)">kubectl or helm: push, once</p>
+  <div class="lane">
+    <div class="c" style="--c:var(--out)"><b>Your laptop</b>your AWS identity; EKS access entry makes the cluster creator admin</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c" style="--c:var(--aws)"><b>API server</b>stores the objects</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c" style="--c:var(--muted)"><b>Afterwards</b>nothing compares them with anything</div>
+  </div>
+  <p class="lane-h" style="--c:var(--dep)">Argo CD: pull, then keep comparing</p>
+  <div class="lane">
+    <div class="c" style="--c:var(--out)"><b>GitHub HEAD</b><code>helm-charts/frontend</code>, <code>monitoring/</code> values</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c" style="--c:var(--dep)"><b>Argo CD pod</b>in the cluster, its own service account</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c" style="--c:var(--aws)"><b>API server</b>the same one</div>
+    <span class="arr" aria-hidden="true">→</span>
+    <div class="c" style="--c:var(--dep)"><b>Afterwards</b>live state differs from Git: <code>selfHeal</code> puts it back, <code>prune</code> deletes extras</div>
+  </div>
+  <p class="lane-h" style="--c:var(--muted)">So: if you change it by hand, what puts it back?</p>
+  <div class="tw"><table>
+    <tr><th>Object</th><th>Applied by</th><th>Hand edit</th><th>Drill</th></tr>
+    <tr><td>frontend Deployment, Service, Ingress, HPA</td><td class="by">Argo CD</td><td>Reverted within seconds</td><td class="by">10. Drills 1 to 6 pause auto-sync first for this reason.</td></tr>
+    <tr><td>Monitoring stack</td><td class="by">Argo CD</td><td>Reverted</td><td class="by"></td></tr>
+    <tr><td>Argo CD, LB controller, Cluster Autoscaler, metrics-server</td><td class="by">kubectl and helm in <code>setup-argocd.sh</code></td><td>Stays until you rerun the script</td><td class="by"></td></tr>
+    <tr><td>IRSA service accounts</td><td class="by">kubectl in <code>setup-argocd.sh</code></td><td>Stays until you rerun the script</td><td class="by">8</td></tr>
+    <tr><td>CoreDNS, kube-proxy, aws-node</td><td class="by">EKS defaults; no <code>cluster_addons</code> in this repo</td><td>Stays (unverified)</td><td class="by">7</td></tr>
+    <tr><td>The EC2 node</td><td class="by">Auto Scaling Group</td><td>Replaced only if EC2 health checks fail. A stopped kubelet does not fail them, and node auto-repair is not set in <code>eks.tf</code>.</td><td class="by">9</td></tr>
+  </table></div>
+</div>
+
 <h2>When it breaks</h2>
 <ol class="steps">
   <li><b>Impact first.</b> Who is affected, how badly, since when.</li>
@@ -700,6 +843,208 @@ Roll back       kubectl rollout undo deployment/frontend -n portfolio-apps</code
     <p>Memory kill: the limit is a cgroup limit. Go over it and the kernel kills the process; Kubernetes shows <code>OOMKilled</code>, exit code 137.</p>
   </div>
 </details>
+
+<h2 id="drills">Where each drill breaks</h2>
+<p class="lead2">The ten faults in <code>scripts/drill.sh</code>, placed on the picture. Four of them hit the same box: the new pod of a rollout. Only one takes the site down for everyone.</p>
+<figure class="drillmap">
+  <svg viewBox="0 0 1000 600" role="img" aria-label="Drill map. Drills 1 to 4 break the new frontend pod of a rollout while the old pods keep serving. Drill 5 breaks the Service record, which empties the ALB's targets. Drill 6 leaves a pod Pending under the scheduler. Drill 7 is CoreDNS, drill 8 the LB controller's call to AWS, drill 9 the kubelet on one node, drill 10 Argo CD.">
+    <defs>
+      <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
+    </defs>
+
+    <!-- laptop -->
+    <rect class="out" x="10" y="20" width="300" height="62" rx="8"/>
+    <text class="t" x="26" y="44">Your laptop: scripts/drill.sh</text>
+    <text class="s" x="26" y="66">kubectl to the API server; aws ssm for 9</text>
+    <path class="api" d="M310,65 H346" marker-end="url(#ar2)"/>
+
+    <!-- control plane -->
+    <rect class="aws" x="330" y="10" width="660" height="92" rx="10"/>
+    <text class="t" x="346" y="32">EKS control plane (AWS's account)</text>
+    <rect class="aws" x="346" y="42" width="190" height="46" rx="6" style="stroke-width:2.5"/><text class="b" x="441" y="61" text-anchor="middle" style="font-weight:700">API server</text><text class="r" x="441" y="78" text-anchor="middle">every change goes through it</text>
+    <rect class="aws" x="552" y="42" width="200" height="46" rx="6"/><text class="b" x="652" y="61" text-anchor="middle">scheduler</text><text class="r" x="652" y="78" text-anchor="middle">picks a node per pod</text>
+    <rect class="aws" x="768" y="42" width="206" height="46" rx="6"/><text class="b" x="871" y="61" text-anchor="middle">controller manager</text><text class="r" x="871" y="78" text-anchor="middle">runs Deployment rollouts</text>
+
+    <!-- pending pod, never reaches a node -->
+    <path class="api" d="M652,88 V112"/>
+    <rect class="pod" x="560" y="112" width="184" height="48" rx="8" style="stroke-dasharray:5 4"/>
+    <text class="b" x="652" y="131" text-anchor="middle">frontend pod: Pending</text>
+    <text class="r" x="652" y="148" text-anchor="middle">asks for 3 CPUs, no node has 3</text>
+    <g class="bd bd-no"><circle cx="744" cy="112" r="11"/><text x="744" y="116" text-anchor="middle">6</text></g>
+
+    <!-- outside the nodes -->
+    <rect class="out" x="10" y="190" width="140" height="56" rx="8"/>
+    <text class="t" x="80" y="213" text-anchor="middle">A user</text>
+    <text class="s" x="80" y="232" text-anchor="middle">your curl loop</text>
+    <rect class="you" x="175" y="190" width="130" height="58" rx="8"/>
+    <text class="b" x="240" y="211" text-anchor="middle">Load balancer</text>
+    <text class="s" x="240" y="227" text-anchor="middle">ALB, public subnet</text>
+    <text class="r" x="240" y="241" text-anchor="middle">made by LB controller</text>
+    <rect class="obj" x="175" y="300" width="130" height="76" rx="8"/>
+    <text class="b" x="240" y="320" text-anchor="middle">Service frontend</text>
+    <text class="r" x="240" y="338" text-anchor="middle">EndpointSlice:</text>
+    <text class="r" x="240" y="352" text-anchor="middle">ready pod IPs, which</text>
+    <text class="r" x="240" y="366" text-anchor="middle">become ALB targets</text>
+    <path class="api" d="M240,300 V250" marker-end="url(#ar2)"/>
+    <g class="bd bd-hit"><circle cx="305" cy="300" r="11"/><text x="305" y="304" text-anchor="middle">5</text></g>
+    <rect class="out" x="10" y="470" width="140" height="56" rx="8"/>
+    <text class="t" x="80" y="493" text-anchor="middle">Git (GitHub)</text>
+    <text class="s" x="80" y="512" text-anchor="middle">what should run</text>
+
+    <!-- node A -->
+    <rect class="you" x="330" y="180" width="320" height="330" rx="10"/>
+    <text class="t" x="346" y="203">Node A</text>
+    <text class="r" x="634" y="203" text-anchor="end">EC2; placement illustrative</text>
+    <rect class="pod" x="346" y="230" width="140" height="66" rx="8"/>
+    <text class="b" x="416" y="254" text-anchor="middle">frontend pod</text>
+    <text class="r" x="416" y="271" text-anchor="middle">current version</text>
+    <text class="r" x="416" y="285" text-anchor="middle">serving traffic</text>
+    <rect class="pod" x="500" y="230" width="134" height="66" rx="8" style="stroke-dasharray:5 4"/>
+    <text class="b" x="567" y="250" text-anchor="middle">frontend pod</text>
+    <text class="r" x="567" y="265" text-anchor="middle">new, from the drill</text>
+    <g class="bd bd-no"><circle cx="531" cy="281" r="10"/><text x="531" y="285" text-anchor="middle">1</text></g>
+    <g class="bd bd-no"><circle cx="555" cy="281" r="10"/><text x="555" y="285" text-anchor="middle">2</text></g>
+    <g class="bd bd-no"><circle cx="579" cy="281" r="10"/><text x="579" y="285" text-anchor="middle">3</text></g>
+    <g class="bd bd-no"><circle cx="603" cy="281" r="10"/><text x="603" y="285" text-anchor="middle">4</text></g>
+    <rect class="pod" x="346" y="308" width="140" height="46" rx="8"/><text class="b" x="416" y="327" text-anchor="middle">Argo CD</text><text class="r" x="416" y="343" text-anchor="middle">paused in 1 to 6</text>
+    <g class="bd bd-no"><circle cx="486" cy="308" r="11"/><text x="486" y="312" text-anchor="middle">10</text></g>
+    <rect class="pod" x="500" y="308" width="134" height="46" rx="8"/><text class="b" x="567" y="327" text-anchor="middle">CoreDNS</text><text class="r" x="567" y="343" text-anchor="middle">names to IPs</text>
+    <g class="bd bd-no"><circle cx="634" cy="308" r="11"/><text x="634" y="312" text-anchor="middle">7</text></g>
+    <rect class="pod" x="500" y="366" width="134" height="46" rx="8"/><text class="b" x="567" y="385" text-anchor="middle">autoscaler</text><text class="r" x="567" y="401" text-anchor="middle">cannot help 6</text>
+    <rect class="out" x="346" y="440" width="140" height="50" rx="8"/><text class="b" x="416" y="461" text-anchor="middle">kubelet</text><text class="r" x="416" y="478" text-anchor="middle">+ containerd, systemd</text>
+    <g class="bd bd-maybe"><circle cx="486" cy="440" r="11"/><text x="486" y="444" text-anchor="middle">9</text></g>
+
+    <!-- node B -->
+    <rect class="you" x="670" y="180" width="320" height="330" rx="10"/>
+    <text class="t" x="686" y="203">Node B</text>
+    <text class="r" x="974" y="203" text-anchor="end">EC2, a peer of A</text>
+    <rect class="pod" x="686" y="230" width="140" height="66" rx="8"/>
+    <text class="b" x="756" y="254" text-anchor="middle">frontend pod</text>
+    <text class="r" x="756" y="271" text-anchor="middle">current version</text>
+    <text class="r" x="756" y="285" text-anchor="middle">serving traffic</text>
+    <rect class="pod" x="840" y="230" width="134" height="66" rx="8"/><text class="b" x="907" y="254" text-anchor="middle">Prometheus</text><text class="r" x="907" y="271" text-anchor="middle">alert rules</text>
+    <rect class="pod" x="840" y="308" width="134" height="46" rx="8"/><text class="b" x="907" y="327" text-anchor="middle">LB controller</text><text class="r" x="907" y="343" text-anchor="middle">builds the ALB</text>
+    <rect class="out" x="686" y="440" width="140" height="50" rx="8"/><text class="b" x="756" y="461" text-anchor="middle">kubelet</text><text class="r" x="756" y="478" text-anchor="middle">+ containerd, systemd</text>
+
+    <!-- AWS APIs -->
+    <rect class="out" x="330" y="530" width="660" height="56" rx="8"/>
+    <text class="b" x="660" y="553" text-anchor="middle" style="font-weight:700">AWS APIs, outside your VPC</text>
+    <text class="r" x="660" y="572" text-anchor="middle">Elastic Load Balancing, EC2 Auto Scaling, STS</text>
+    <path class="bld" d="M567,412 V530" marker-end="url(#ar2)"/>
+    <text class="r" x="575" y="476">IRSA role</text>
+    <path class="bld" d="M907,354 V530" marker-end="url(#ar2)"/>
+    <text class="r" x="915" y="476">IRSA role</text>
+    <g class="bd bd-no"><circle cx="907" cy="500" r="11"/><text x="907" y="504" text-anchor="middle">8</text></g>
+
+    <!-- request and git -->
+    <path class="req" d="M150,218 H175" marker-end="url(#ar2)"/>
+    <path class="req" d="M305,219 H318 V263 H346" marker-end="url(#ar2)"/>
+    <path class="req" d="M318,219 V170 H756 V230" marker-end="url(#ar2)"/>
+    <path class="dep" d="M150,498 H318 V331 H346" marker-end="url(#ar2)"/>
+    <text class="ld" x="160" y="490">Argo CD pulls</text>
+  </svg>
+</figure>
+<div class="bd-key">
+  <span><span class="n hit">5</span> users affected</span>
+  <span><span class="n maybe">9</span> depends where the pods are</span>
+  <span><span class="n no">1</span> users not affected</span>
+  <span style="color:var(--req);font-weight:700">blue: requests</span>
+  <span style="color:var(--you);font-weight:700">orange: calls to AWS</span>
+</div>
+<p class="note">All symptoms and impacts below are what <code>docs/live-session.md</code> expects. None has been observed on this cluster yet. Drills 1 to 6 pause Argo CD auto-sync for <code>frontend</code> first, or <code>selfHeal</code> would undo the fault in seconds. 7, 8 and 9 touch things Argo CD does not manage, so only <code>restore</code> puts them back. Rollouts here use the default 25% settings: with 2 pods that is one extra new pod and no old pod removed until the new one is Ready, which is why 1 to 4 and 6 leave users alone.</p>
+
+<div class="drills">
+  <div class="dr">
+    <h3><span class="n no">1</span><code>image</code> tag that does not exist</h3>
+    <dl>
+      <dt>Breaks</dt><dd>The image pull for the new pod. The Deployment now names <code>nginx:drill-no-such-tag</code>.</dd>
+      <dt>You see</dt><dd>New pod <code>ErrImagePull</code>, then <code>ImagePullBackOff</code>. Events: <code>manifest unknown</code> or <code>not found</code>.</dd>
+      <dt>First</dt><dd class="cmd"><code>kubectl -n portfolio-apps get pods</code></dd>
+      <dt>Users</dt><dd>No. Old pods keep serving.</dd>
+    </dl>
+  </div>
+  <div class="dr">
+    <h3><span class="n no">2</span><code>crash</code> container exits 1</h3>
+    <dl>
+      <dt>Breaks</dt><dd>The container. Its command becomes <code>echo drill-crash; exit 1</code>.</dd>
+      <dt>You see</dt><dd><code>CrashLoopBackOff</code>, restarts climbing. Previous logs print <code>drill-crash</code>. <code>PodCrashLooping</code> fires after about 5 min.</dd>
+      <dt>First</dt><dd class="cmd"><code>kubectl -n portfolio-apps get pods -w</code></dd>
+      <dt>Users</dt><dd>No. Old pods keep serving.</dd>
+    </dl>
+  </div>
+  <div class="dr">
+    <h3><span class="n no">3</span><code>oom</code> memory past 256Mi</h3>
+    <dl>
+      <dt>Breaks</dt><dd>The container's memory cgroup on its node. busybox <code>awk</code> grows a string until the kernel kills it.</dd>
+      <dt>You see</dt><dd><code>OOMKilled</code>, exit code 137, then <code>CrashLoopBackOff</code>. Relies on <code>awk</code> being in <code>nginx:alpine</code>.</dd>
+      <dt>First</dt><dd class="cmd"><code>kubectl -n portfolio-apps describe pod &lt;new-pod&gt; | grep -A6 'Last State'</code></dd>
+      <dt>Users</dt><dd>No. Old pods keep serving.</dd>
+    </dl>
+  </div>
+  <div class="dr">
+    <h3><span class="n no">4</span><code>probe</code> readiness path 404</h3>
+    <dl>
+      <dt>Breaks</dt><dd>kubelet's readiness check on the new pod. Liveness still uses <code>/</code>, so the pod is not restarted, just never Ready. Progress deadline set to 2 min.</dd>
+      <dt>You see</dt><dd>New pod <code>Running</code> but <code>0/1</code>. After 2 min the rollout reports <code>ProgressDeadlineExceeded</code>.</dd>
+      <dt>First</dt><dd class="cmd"><code>kubectl -n portfolio-apps rollout status deploy/frontend --timeout=180s</code></dd>
+      <dt>Users</dt><dd>No. An unready pod never becomes an ALB target.</dd>
+    </dl>
+  </div>
+  <div class="dr">
+    <h3><span class="n hit">5</span><code>selector</code> Service matches no pods</h3>
+    <dl>
+      <dt>Breaks</dt><dd>The Service record. Its EndpointSlice empties, and the LB controller drains every ALB target.</dd>
+      <dt>You see</dt><dd>The curl loop turns to <code>503</code> while every pod shows <code>Running 1/1</code>.</dd>
+      <dt>First</dt><dd class="cmd"><code>kubectl -n portfolio-apps get endpointslices -l kubernetes.io/service-name=frontend</code></dd>
+      <dt>Users</dt><dd class="u-hit">Yes, everyone, until the selector is fixed.</dd>
+    </dl>
+  </div>
+  <div class="dr">
+    <h3><span class="n no">6</span><code>pending</code> asks for 3 CPUs</h3>
+    <dl>
+      <dt>Breaks</dt><dd>Scheduling. A t3.medium has 2 CPUs, so no node fits and a new node would not fit either.</dd>
+      <dt>You see</dt><dd>New pod <code>Pending</code>. <code>FailedScheduling ... Insufficient cpu</code>, and <code>NotTriggerScaleUp</code> from the Cluster Autoscaler.</dd>
+      <dt>First</dt><dd class="cmd"><code>kubectl -n portfolio-apps describe pod &lt;pending-pod&gt;</code></dd>
+      <dt>Users</dt><dd>No. Old pods keep serving.</dd>
+    </dl>
+  </div>
+  <div class="dr">
+    <h3><span class="n no">7</span><code>dns</code> CoreDNS scaled to 0</h3>
+    <dl>
+      <dt>Breaks</dt><dd>Every in-cluster name lookup.</dd>
+      <dt>You see</dt><dd><code>nslookup</code> times out. A Service works by IP, not by name. Argo CD cannot reach GitHub on its next refresh. The ALB still returns 200.</dd>
+      <dt>First</dt><dd class="cmd"><code>kubectl run dnstest --rm -it --restart=Never --image=busybox:1.36 -- nslookup kubernetes.default.svc.cluster.local</code></dd>
+      <dt>Users</dt><dd>No. Nothing in the request path uses cluster DNS.</dd>
+    </dl>
+  </div>
+  <div class="dr">
+    <h3><span class="n no">8</span><code>irsa</code> controller loses its role</h3>
+    <dl>
+      <dt>Breaks</dt><dd>The LB controller's calls to AWS. It falls back to the node role (IRSA visual above).</dd>
+      <dt>You see</dt><dd><code>AccessDenied</code> naming the node role in the controller logs. The existing ALB keeps working.</dd>
+      <dt>First</dt><dd class="cmd"><code>kubectl -n kube-system logs deploy/aws-load-balancer-controller --tail=100 | grep -i -E 'accessdenied|not authorized'</code></dd>
+      <dt>Users</dt><dd>No. Only changes to the ALB fail. Restore before teardown: deleting the Ingress needs this controller to delete the ALB.</dd>
+    </dl>
+  </div>
+  <div class="dr">
+    <h3><span class="n maybe">9</span><code>node</code> kubelet stopped</h3>
+    <dl>
+      <dt>Breaks</dt><dd>kubelet on the node running the first frontend pod. Its containers keep running; the control plane just stops hearing from the node.</dd>
+      <dt>You see</dt><dd>Node <code>NotReady</code>, taint <code>node.kubernetes.io/unreachable</code>. After 300 s its pods go <code>Terminating</code> and replacements start elsewhere. <code>NodeNotReady</code> fires after 5 min.</dd>
+      <dt>First</dt><dd class="cmd"><code>kubectl get nodes -w</code></dd>
+      <dt>Users</dt><dd>Only if both frontend pods were on that node: 503s until replacements are Ready.</dd>
+    </dl>
+  </div>
+  <div class="dr">
+    <h3><span class="n no">10</span><code>selfheal</code> hand edit, auto-sync on</h3>
+    <dl>
+      <dt>Breaks</dt><dd>Nothing for long. The image is changed by hand to <code>nginx:drill-selfheal</code>.</dd>
+      <dt>You see</dt><dd>Application <code>OutOfSync</code>, then <code>Synced</code> within seconds. Image back to <code>nginx:alpine</code>, two new revisions in history.</dd>
+      <dt>First</dt><dd class="cmd"><code>kubectl -n argocd get application frontend -w</code></dd>
+      <dt>Users</dt><dd>No.</dd>
+    </dl>
+  </div>
+</div>
 
 <h2>If they ask for commands or a script</h2>
 <p class="note">Know what each one is for. Nobody expects flags from memory.</p>

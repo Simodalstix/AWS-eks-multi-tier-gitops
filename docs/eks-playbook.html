@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EKS Playbook</title>
+<style>
+:root {
+  --bg: #f7f5f0; --surface: #ffffff; --ink: #1f2328; --muted: #5f6670; --line: #d9d4ca;
+  --aws: #7b5ea7; --aws-bg: #efe9f7;
+  --you: #c47a22; --you-bg: #fbf0e1;
+  --pod: #1f8a7e; --pod-bg: #e2f3f0;
+  --out: #6b7280; --out-bg: #eef0f2;
+  --req: #2f6fdb; --dep: #2e9a4a; --dep-bg: #e3f4e7;
+  --hit: #c0392b; --on-hit: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171b; --surface: #1c2026; --ink: #e8e6e1; --muted: #9aa1aa; --line: #333a43;
+    --aws: #b39ddb; --aws-bg: #2a2438;
+    --you: #e3a254; --you-bg: #33281a;
+    --pod: #4fc1b2; --pod-bg: #173230;
+    --out: #9aa1aa; --out-bg: #262b31;
+    --req: #6c9cf0; --dep: #5cc277; --dep-bg: #1b3322;
+    --hit: #ef7b6c; --on-hit: #14171b;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14171b; --surface: #1c2026; --ink: #e8e6e1; --muted: #9aa1aa; --line: #333a43;
+  --aws: #b39ddb; --aws-bg: #2a2438;
+  --you: #e3a254; --you-bg: #33281a;
+  --pod: #4fc1b2; --pod-bg: #173230;
+  --out: #9aa1aa; --out-bg: #262b31;
+  --req: #6c9cf0; --dep: #5cc277; --dep-bg: #1b3322;
+  --hit: #ef7b6c; --on-hit: #14171b;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1180px; margin: 0 auto; padding: 16px 16px 64px; }
+/* mini nav, shared by the EKS pages */
+.eksnav { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+.eksnav div { max-width: 1180px; margin: 0 auto; padding: 8px 16px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.eksnav b { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-right: 8px; }
+.eksnav a { padding: 4px 12px; border-radius: 6px; color: var(--ink); text-decoration: none; font-size: 15px; }
+.eksnav a:hover { background: var(--out-bg); }
+.eksnav a[aria-current="page"] { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); font-weight: 700; }
+h1 { font-size: 26px; margin: 12px 0 4px; }
+h2 { font-size: 20px; margin: 40px 0 10px; padding-top: 12px; border-top: 1px solid var(--line); scroll-margin-top: 56px; }
+h3 { font-size: 16px; margin: 0 0 6px; }
+.lead { color: var(--muted); margin: 0 0 18px; }
+a { color: var(--req); }
+code, pre { font-family: ui-monospace, "Cascadia Mono", Menlo, monospace; font-size: 13.5px; }
+code { background: var(--out-bg); padding: 1px 5px; border-radius: 4px; }
+pre { position: relative; background: var(--out-bg); padding: 10px 70px 10px 12px; border-radius: 6px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0 8px; }
+pre code { background: none; padding: 0; }
+pre button { position: absolute; top: 6px; right: 6px; font: 600 12px system-ui, sans-serif; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 5px; padding: 2px 8px; cursor: pointer; }
+pre button:hover { color: var(--ink); }
+.note { color: var(--muted); font-size: 14px; }
+.tag { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 1px 7px; border-radius: 10px; border: 1px solid var(--c); color: var(--c); vertical-align: 1px; }
+table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+th, td { text-align: left; vertical-align: top; padding: 8px 12px; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+th { font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+details { margin-top: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+details > summary { cursor: pointer; padding: 7px 12px; color: var(--muted); font-size: 14px; font-weight: 600; }
+details[open] > summary { border-bottom: 1px solid var(--line); }
+details .in { padding: 4px 12px 8px; font-size: 14.5px; }
+
+/* terminals */
+.terms { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.term { background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 8px; padding: 10px 12px; }
+.term h3 { color: var(--c); }
+.term p { margin: 4px 0 0; font-size: 14px; }
+
+/* stage strip */
+.strip { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.strip a { display: block; background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 8px; padding: 8px 9px; text-decoration: none; color: var(--ink); }
+.strip a:hover { box-shadow: inset 0 0 0 1px var(--c); }
+.strip .k { font-size: 12px; font-weight: 700; color: var(--c); text-transform: uppercase; letter-spacing: .04em; }
+.strip .t { display: block; font-weight: 700; font-size: 15px; margin: 2px 0 4px; }
+.strip .w { display: block; font-size: 12.5px; color: var(--muted); }
+.strip .cost { display: block; margin-top: 6px; font-size: 12.5px; font-weight: 700; }
+
+/* one stage */
+.stage { display: grid; grid-template-columns: 582px minmax(0, 1fr); gap: 16px; align-items: start; }
+.stage figure { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px; position: sticky; top: 56px; }
+.stage figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.stage svg { width: 100%; height: auto; display: block; }
+.blk { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 8px; padding: 8px 12px 6px; margin-bottom: 10px; }
+.blk > b { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--c); margin-bottom: 2px; }
+.blk ul { margin: 2px 0 4px; padding-left: 20px; }
+.blk li { margin: 2px 0; }
+.blk p { margin: 2px 0 6px; }
+.run { --c: var(--you); }
+.watch { --c: var(--req); }
+.shows { --c: var(--pod); }
+.done { --c: var(--dep); }
+.warn { --c: var(--hit); }
+.checks { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.checks .blk { margin: 0; }
+
+/* mini diagram */
+svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--ink); font-size: 11px; }
+svg .lbl { font-size: 10px; fill: var(--muted); }
+svg .hd { font-size: 11.5px; font-weight: 700; }
+svg rect { stroke-width: 1.5; }
+svg .frame { fill: none; stroke: var(--line); stroke-dasharray: 4 3; }
+svg .b-out { fill: var(--out-bg); stroke: var(--out); }
+svg .b-aws { fill: var(--aws-bg); stroke: var(--aws); }
+svg .b-you { fill: var(--you-bg); stroke: var(--you); }
+svg .b-pod { fill: var(--pod-bg); stroke: var(--pod); }
+svg g.ghost { opacity: .28; }
+svg g.ghost rect { stroke-dasharray: 3 3; }
+svg g.new rect { stroke: var(--dep); stroke-width: 3; }
+svg g.hot rect { stroke: var(--hit); stroke-width: 3; }
+svg g.gone rect { fill: none; stroke: var(--hit); stroke-dasharray: 4 3; }
+svg g.gone text { fill: var(--hit); text-decoration: line-through; }
+.mkey { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; margin: 6px 0 0; color: var(--muted); }
+.mkey span::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; border: 2px solid var(--c); }
+.mkey .m-new { --c: var(--dep); }
+.mkey .m-ghost::before { border-style: dashed; opacity: .5; --c: var(--out); }
+.mkey .m-hot { --c: var(--hit); }
+.mkey .m-gone::before { border-style: dashed; --c: var(--hit); }
+
+.drills td:first-child { font-weight: 700; white-space: nowrap; }
+.drills td code { white-space: nowrap; }
+</style>
+</head>
+<body>
+<nav class="eksnav" aria-label="EKS pages"><div>
+  <b>EKS lab</b>
+  <a href="/eks" target="_top">At a glance</a>
+  <a href="/eks/playbook" target="_top" aria-current="page">Playbook</a>
+  <a href="/eks/star" target="_top">STAR</a>
+</div></nav>
+<main>
+
+<h1>EKS playbook</h1>
+<p class="lead">Build it, watch each part appear, break it on purpose, tear it down. Every stage says what to run, what to watch, and what it proves. Region <code>ap-southeast-2</code>, cluster <code>eks-portfolio-dev</code>, commands from the repo root. The full checklist with every expected line is <a href="https://github.com/Simodalstix/AWS-eks-multi-tier-gitops/blob/main/docs/live-session.md" target="_blank" rel="noopener">docs/live-session.md</a>; this page is the map.</p>
+
+<h2>Set up three terminals</h2>
+<div class="terms">
+  <div class="term" style="--c:var(--you)">
+    <h3>1 Do</h3>
+    <p>Runs the scripts and the drill commands. Log everything for the write-ups:</p>
+<pre><code>mkdir -p ~/eks-sessions
+script -f -a ~/eks-sessions/$(date +%F).log</code></pre>
+    <p class="note"><code>exit</code> at the end closes the log.</p>
+  </div>
+  <div class="term" style="--c:var(--req)">
+    <h3>2 Watch</h3>
+    <p>Read-only. Changes nothing, so leave it running all session:</p>
+<pre><code>watch -n 5 scripts/look.sh all</code></pre>
+    <p class="note">Swap in a narrower view per stage: <code>aws</code>, <code>nodes</code>, <code>app</code>, <code>argo</code>, <code>system</code>, <code>irsa</code>, <code>alerts</code>, <code>events</code>.</p>
+  </div>
+  <div class="term" style="--c:var(--dep)">
+    <h3>3 User</h3>
+    <p>From stage C, once the ALB exists. What a user would see, every 2 seconds:</p>
+<pre><code>ALB=$(kubectl -n portfolio-apps get ingress frontend -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+while true; do printf '%s %s\n' "$(date -u +%T)" "$(curl -s -o /dev/null -m 3 -w '%{http_code}' -H 'Host: frontend.local' "http://$ALB/")"; sleep 2; done</code></pre>
+  </div>
+</div>
+
+<h2>The run, start to finish</h2>
+<div class="strip">
+  <a href="#s0" style="--c:var(--out)"><span class="k">0</span><span class="t">Check</span><span class="w">tools, identity, empty region</span><span class="cost">$0</span></a>
+  <a href="#sa" style="--c:var(--you)"><span class="k">A</span><span class="t">Plan</span><span class="w">Terraform shows the 84 resources</span><span class="cost">$0</span></a>
+  <a href="#sb" style="--c:var(--you)"><span class="k">B</span><span class="t">Apply</span><span class="w">network, control plane, nodes</span><span class="cost">about $0.22/h</span></a>
+  <a href="#sc" style="--c:var(--pod)"><span class="k">C</span><span class="t">Bootstrap</span><span class="w">controllers, Argo CD, apps, ALB</span><span class="cost">about $0.26/h</span></a>
+  <a href="#sd" style="--c:var(--aws)"><span class="k">D</span><span class="t">Verify</span><span class="w">IRSA, ALB, autoscaling, alerts</span><span class="cost">up to 2 more nodes</span></a>
+  <a href="#sf" style="--c:var(--hit)"><span class="k">F</span><span class="t">Drills</span><span class="w">ten faults, triage by hand</span><span class="cost">about $0.26/h</span></a>
+  <a href="#sg" style="--c:var(--dep)"><span class="k">G</span><span class="t">Teardown</span><span class="w">ALB first, then destroy, then proof</span><span class="cost">back to $0</span></a>
+</div>
+<p class="note">Hourly figures from the price table in the checklist (step A, ap-southeast-2, 2026-10-18): control plane, NAT gateway and its IP, 2 Spot nodes with disks, then the ALB. Before data, LCUs and log ingestion. Step E (checking the notes' claims on a node) is optional and lives in the checklist only.</p>
+<div class="mkey">
+  <span class="m-new">new in this stage</span>
+  <span>already there</span>
+  <span class="m-ghost">not there yet</span>
+  <span class="m-hot">what this stage tests</span>
+  <span class="m-gone">removed</span>
+</div>
+
+<!-- 0 -->
+<h2 id="s0">0 Check: start from an empty region</h2>
+<div class="stage">
+  <figure><svg data-stage="s0" viewBox="0 0 560 262" role="img" aria-label="Nothing exists in AWS yet"></svg><figcaption>Only your laptop and GitHub. Anything already in the region is already costing money.</figcaption></figure>
+  <div>
+    <div class="blk run"><b>Run</b>
+<pre><code>aws --version; terraform version; helm version; kubectl version --client
+session-manager-plugin --version; jq --version
+aws sts get-caller-identity
+aws eks list-clusters --region ap-southeast-2
+aws ec2 describe-nat-gateways --region ap-southeast-2 --filter Name=state,Values=pending,available --query 'NatGateways[].NatGatewayId'
+aws elbv2 describe-load-balancers --region ap-southeast-2 --query 'LoadBalancers[].LoadBalancerName'</code></pre>
+    </div>
+    <div class="blk shows"><b>What it proves</b><p>You are the identity you think you are, and the region is clean, so everything you see later was made tonight.</p></div>
+    <div class="blk done"><b>Done when</b><p>The three lists are empty. kubectl client 1.35 or 1.36: it supports one minor version either side of the 1.35 server (yours was v1.37.1 on 2026-10-18).</p></div>
+  </div>
+</div>
+
+<!-- A -->
+<h2 id="sa">A Plan: Terraform says what it will build</h2>
+<div class="stage">
+  <figure><svg data-stage="sa" viewBox="0 0 560 262" role="img" aria-label="Still nothing in AWS; the plan lists what will be created"></svg><figcaption>Still nothing in AWS. The plan is a list, not a build.</figcaption></figure>
+  <div>
+    <div class="blk warn"><b>Before this</b><p><span class="tag" style="--c:var(--hit)">you run</span> Push the branch. Argo CD deploys from GitHub <code>HEAD</code>, not your working tree; <code>setup-argocd.sh</code> warns if they differ.</p></div>
+    <div class="blk run"><b>Run</b>
+<pre><code>scripts/deploy-infrastructure.sh</code></pre>
+      <p>Runs <code>terraform init</code>, <code>validate</code>, <code>plan</code>, prints the <code>Plan:</code> line, then stops at <code>Apply this plan? (y/N)</code>.</p>
+    </div>
+    <div class="blk shows"><b>What it proves</b><p>Terraform builds the AWS layer only. The plan has no Auto Scaling Group and no load balancer: EKS makes the first, the LB controller the second. Nothing inside Kubernetes is in it.</p></div>
+    <div class="blk done"><b>Done when</b><p><code>Plan: 84 to add, 0 to change, 0 to destroy.</code> Anything to change or destroy: answer N and stop. Your local state is not what you think.</p></div>
+  </div>
+</div>
+
+<!-- B -->
+<h2 id="sb">B Apply: the network, the control plane and the nodes</h2>
+<div class="stage">
+  <figure><svg data-stage="sb" viewBox="0 0 560 262" role="img" aria-label="Terraform and EKS create IAM, the VPC with NAT, the control plane, the node group's Auto Scaling Group and two nodes with the default add-ons"></svg><figcaption>EKS adds aws-node, kube-proxy and CoreDNS by itself. No apps yet.</figcaption></figure>
+  <div>
+    <div class="blk run"><b>Run</b><p><span class="tag" style="--c:var(--hit)">you run</span> Answer <code>y</code> at the prompt. The script then backs up the state to <code>~/tfstate-backups/</code>, runs <code>aws eks update-kubeconfig</code> and <code>kubectl get nodes -o wide</code>, and prints how long the apply took.</p></div>
+    <div class="blk watch"><b>Watch</b>
+<pre><code>watch -n 20 scripts/look.sh aws</code></pre>
+      <p>Works before kubectl is configured. Cluster <code>CREATING</code> then <code>ACTIVE</code>. Then the ASG appears with desired 2 and two instances go <code>InService</code>. Once the script has configured kubectl: <code>scripts/look.sh nodes</code>.</p>
+    </div>
+    <div class="blk shows"><b>What it proves</b><p>The chain from the glance page: node group (Terraform) to Auto Scaling Group (EKS) to EC2 instances to registered nodes. Each instance id in <code>look.sh aws</code> matches one node in <code>look.sh nodes</code>.</p></div>
+    <div class="blk done"><b>Done when</b><p>2 nodes <code>Ready</code>, capacity type <code>SPOT</code>, Amazon Linux 2023, kubelet v1.35.x. Costs are running from here.</p></div>
+  </div>
+</div>
+
+<!-- C -->
+<h2 id="sc">C Bootstrap: controllers, Argo CD, then the apps</h2>
+<div class="stage">
+  <figure><svg data-stage="sc" viewBox="0 0 560 262" role="img" aria-label="setup-argocd.sh adds Argo CD and the controllers; Argo CD then deploys the apps; the LB controller creates the ALB"></svg><figcaption>Controllers come from kubectl and helm. Apps come from Argo CD. The ALB comes from the LB controller.</figcaption></figure>
+  <div>
+    <div class="blk run"><b>Run</b>
+<pre><code>scripts/setup-argocd.sh</code></pre>
+      <p>Installs Argo CD v3.5.5, the two IRSA service accounts, the LB controller, metrics-server and the Cluster Autoscaler, creates the Grafana secret, then applies the Argo CD project and the <code>frontend</code> and <code>monitoring</code> Applications. It refuses to run if kubectl points at another cluster.</p>
+    </div>
+    <div class="blk watch"><b>Watch</b><p><code>look.sh all</code> in terminal 2. Then <code>scripts/look.sh argo</code> for Synced and Healthy, and <code>scripts/look.sh app</code> until the Ingress has an ALB hostname and the targets are <code>healthy</code>. Then start terminal 3.</p></div>
+    <div class="blk shows"><b>What it proves</b><p>Two ways in through the same API server. kubectl and helm push the layer Argo CD needs. Argo CD then pulls the rest from Git. Nothing outside the cluster deploys the apps.</p></div>
+    <div class="blk done"><b>Done when</b><p>The script prints the Argo CD password and the Grafana lines. Both Applications Synced and Healthy. Terminal 3 shows <code>200</code>. Save the non-empty output of the positive-control commands in checklist step C: teardown proves emptiness against it.</p></div>
+  </div>
+</div>
+
+<!-- D -->
+<h2 id="sd">D Verify: what only a live cluster can show</h2>
+<div class="stage">
+  <figure><svg data-stage="sd" viewBox="0 0 560 262" role="img" aria-label="Everything exists; the controllers and the ALB are under test, and a third node may appear"></svg><figcaption>Node 3 appears only during the autoscaler test.</figcaption></figure>
+  <div class="checks">
+    <div class="blk shows"><b>D1 IRSA</b>
+      <p>Pods get their own AWS role from the service account annotation.</p>
+<pre><code>scripts/look.sh irsa</code></pre>
+      <p>Done: both service accounts show a role ARN, both controller pods show <code>AWS_ROLE_ARN</code>, frontend shows nothing.</p>
+    </div>
+    <div class="blk shows"><b>D2 LB controller</b>
+      <p>An Ingress becomes a real ALB with pod IPs as targets.</p>
+<pre><code>scripts/look.sh app</code></pre>
+      <p>Done: <code>200</code>, one target per frontend pod, all <code>healthy</code>.</p>
+    </div>
+    <div class="blk shows"><b>D3 Cluster Autoscaler</b>
+      <p>Pods that do not fit make the ASG grow; empty nodes make it shrink.</p>
+<pre><code>kubectl create namespace ca-drill
+kubectl -n ca-drill create deployment ca-drill --image=registry.k8s.io/pause:3.10 --replicas=6
+kubectl -n ca-drill set resources deployment ca-drill --requests=cpu=500m,memory=128Mi
+watch -n 10 scripts/look.sh nodes    # terminal 2
+kubectl delete namespace ca-drill    # then wait for scale-down</code></pre>
+      <p>Done: Pending pods, desired count rises (max 4), new nodes Ready. After the delete, back down within about 20 to 30 minutes, never below 1.</p>
+    </div>
+    <div class="blk shows"><b>D4 to D6 the rest</b>
+      <ul>
+        <li>HPA: <code>look.sh app</code> shows <code>cpu: N%/80%</code>, not <code>&lt;unknown&gt;</code>.</li>
+        <li>SSM: <code>aws ssm start-session --region ap-southeast-2 --target &lt;instance-id&gt;</code> opens a shell on a node, no SSH key.</li>
+        <li>Alerts: <code>look.sh alerts</code> lists only <code>Watchdog</code> firing.</li>
+        <li>Grafana: <code>kubectl -n monitoring port-forward svc/monitoring-grafana 3000:80</code>, password from the secret.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<p class="note">All of D is unverified: written from the repo and docs, never run against a cluster. The service-proxy path that <code>look.sh alerts</code> uses (<code>prometheus-prometheus:9090</code>) is unverified too; the checklist's port-forward in D6 is the fallback.</p>
+
+<!-- F -->
+<h2 id="sf">F Drills: break it, watch it, fix it</h2>
+<div class="stage">
+  <figure><svg data-stage="sf" viewBox="0 0 560 262" role="img" aria-label="Everything exists; the drills break the frontend pods, the Service, CoreDNS, the LB controller, a node's kubelet and Argo CD"></svg><figcaption>Red: where the ten drills land. Full map with symptoms and first commands: <a href="/eks#drills" target="_top">At a glance, Where each drill breaks</a>.</figcaption></figure>
+  <div>
+    <div class="blk run"><b>The loop, for every drill</b>
+<pre><code>scripts/drill.sh break &lt;drill&gt;      # note the time it prints
+# triage by hand: the checklist has the commands per drill
+scripts/drill.sh restore &lt;drill&gt;    # even if you already fixed it</code></pre>
+      <p>Record the break time, when you first saw the symptom, what terminal 3 showed, and anything that did not match. Then write a runbook from the log: <code>cp runbooks/_template.md runbooks/&lt;slug&gt;.md</code>.</p>
+    </div>
+    <div class="blk shows"><b>What the drills prove together</b><p>Where a failure sits decides who notices. Most faults hit the new pod of a rollout, and the old pods keep serving. One fault in the Service record takes everyone down while every pod looks fine.</p></div>
+  </div>
+</div>
+<table class="drills" style="margin-top:12px">
+  <tr><th>Drill</th><th>Watch in terminal 2</th><th>What you should see there</th><th>What it demonstrates</th></tr>
+  <tr><td>1 image</td><td><code>look.sh all</code></td><td>New pod WAITING <code>ImagePullBackOff</code>; terminal 3 stays 200</td><td>A bad deploy stalls; it does not take the old pods down</td></tr>
+  <tr><td>2 crash</td><td><code>look.sh all</code></td><td>New pod <code>CrashLoopBackOff</code>; later <code>look.sh alerts</code> shows <code>PodCrashLooping</code></td><td>Restart backoff, and the alert that tells you before users do</td></tr>
+  <tr><td>3 oom</td><td><code>look.sh all</code></td><td>New pod restarting; <code>describe</code> says <code>OOMKilled</code>, exit 137</td><td>The memory limit is a kernel cgroup limit</td></tr>
+  <tr><td>4 probe</td><td><code>look.sh app</code></td><td>New pod Running, READY false; its EndpointSlice entry <code>ready=false</code></td><td>Readiness gates traffic; the rollout waits, then reports its deadline</td></tr>
+  <tr><td>5 selector</td><td><code>look.sh app</code></td><td>No EndpointSlice IPs, targets draining, terminal 3 turns <code>503</code></td><td>Healthy pods do not mean a healthy service</td></tr>
+  <tr><td>6 pending</td><td><code>look.sh aws</code></td><td>ASG desired count stays at 2 while <code>look.sh all</code> shows the new pod Pending</td><td>The autoscaler adds nodes only when a node would help</td></tr>
+  <tr><td>7 dns</td><td><code>look.sh system</code></td><td>coredns <code>0/0</code> while terminal 3 stays 200</td><td>Map the blast radius before calling it an outage</td></tr>
+  <tr><td>8 irsa</td><td><code>look.sh irsa</code></td><td>Annotation gone; controller pod has no <code>AWS_ROLE_ARN</code></td><td>IRSA failure is silent until the next change</td></tr>
+  <tr><td>9 node</td><td><code>look.sh nodes</code></td><td>One node <code>NotReady</code>, taint <code>unreachable</code>; after 5 min its pods move</td><td>The node is not replaced: the ASG sees a healthy instance. Its pods are recreated elsewhere after the 5-minute eviction.</td></tr>
+  <tr><td>10 selfheal</td><td><code>look.sh argo</code></td><td>Frontend image flips to <code>nginx:drill-selfheal</code> and back; OutOfSync then Synced</td><td>Under GitOps a kubectl hotfix gets reverted</td></tr>
+</table>
+<p class="note">Expected behaviour from the checklist, not yet observed on this cluster. Drills 1 to 6 pause Argo CD auto-sync for <code>frontend</code>; <code>look.sh argo</code> shows AUTO-SYNC <code>&lt;none&gt;</code> until restore.</p>
+
+<!-- G -->
+<h2 id="sg">G Teardown: the ALB first, then everything Terraform made</h2>
+<div class="stage">
+  <figure><svg data-stage="sg" viewBox="0 0 560 262" role="img" aria-label="Teardown removes the apps and the ALB first, then terraform destroy removes the rest"></svg><figcaption>Order matters: Terraform does not know the ALB exists.</figcaption></figure>
+  <div>
+    <div class="blk run"><b>Run</b>
+<pre><code>scripts/teardown.sh</code></pre>
+      <ol style="margin:2px 0 6px;padding-left:20px">
+        <li>Deletes the Argo CD Applications. Their finalizer deletes the Ingress, and the LB controller deletes the ALB, target groups and <code>k8s-</code> security groups.</li>
+        <li>Waits up to 5 minutes for those to go. Stops if they do not.</li>
+        <li>Stops if either ECR repository has images.</li>
+        <li><span class="tag" style="--c:var(--hit)">you run</span> <code>terraform destroy</code>, which asks for confirmation.</li>
+        <li>Prints the proof: every line empty, state entries <code>0</code>.</li>
+      </ol>
+    </div>
+    <div class="blk watch"><b>Watch</b>
+<pre><code>watch -n 20 scripts/look.sh aws</code></pre>
+      <p>The <code>k8s-</code> load balancer disappears first. Then the cluster goes <code>DELETING</code>, then the commands start to error because it is gone.</p>
+    </div>
+    <div class="blk warn"><b>If a drill is still broken</b><p>Restore it first, especially drill 8: with IRSA broken the controller cannot delete the ALB, and destroy then hangs on the VPC. Cluster already unreachable: <code>scripts/teardown.sh --skip-cluster</code>.</p></div>
+    <div class="blk done"><b>Done when</b><p>Proof lines empty where step C's positive control was not. Check again the next day: KMS key pending deletion (7-day window), a log group EKS may recreate, NAT data and LCUs billed after the fact.</p></div>
+  </div>
+</div>
+
+</main>
+<script>
+// Mini diagram, drawn once per stage from one layout. State per box:
+// new (made in this stage), on (already there), ghost (not yet),
+// hot (under test), gone (removed).
+(function () {
+  var B = {
+    laptop: [8, 10, 112, 40, 'b-out', 'Your laptop', 'scripts, kubectl'],
+    git:    [8, 212, 112, 40, 'b-out', 'GitHub', 'what should run'],
+    iam:    [134, 10, 150, 40, 'b-you', 'IAM roles, OIDC', 'KMS key, ECR'],
+    cp:     [296, 10, 256, 40, 'b-aws', 'EKS control plane', 'API server, etcd, scheduler'],
+    alb:    [144, 92, 92, 40, 'b-you', 'ALB', 'by LB controller'],
+    nat:    [144, 196, 92, 40, 'b-you', 'NAT gateway', 'by Terraform'],
+    n1:     [256, 92, 124, 156, 'b-you', 'Node 1', ''],
+    n2:     [388, 92, 124, 156, 'b-you', 'Node 2', ''],
+    app1:   [264, 116, 108, 34, 'b-pod', 'frontend', 'Prometheus'],
+    app2:   [396, 116, 108, 34, 'b-pod', 'frontend', 'Grafana'],
+    ctl1:   [264, 156, 108, 34, 'b-pod', 'Argo CD', 'autoscaler'],
+    ctl2:   [396, 156, 108, 34, 'b-pod', 'LB controller', 'metrics-server'],
+    sys1:   [264, 196, 108, 34, 'b-pod', 'CoreDNS', '+ the DaemonSets'],
+    sys2:   [396, 196, 108, 34, 'b-pod', 'aws-node', 'kube-proxy'],
+    n3:     [518, 92, 32, 156, 'b-you', '+', '']
+  };
+  var AWS = ['iam', 'cp', 'alb', 'nat', 'n1', 'n2', 'app1', 'app2', 'ctl1', 'ctl2', 'sys1', 'sys2', 'n3'];
+  var B_NEW = ['iam', 'cp', 'nat', 'n1', 'n2', 'sys1', 'sys2'];
+  var C_NEW = ['alb', 'app1', 'app2', 'ctl1', 'ctl2'];
+  function st(stage, id) {
+    if (id === 'laptop' || id === 'git') return 'on';
+    if (id === 'n3') return stage === 'sd' ? 'new' : 'ghost';
+    switch (stage) {
+      case 's0': case 'sa': return 'ghost';
+      case 'sb': return B_NEW.indexOf(id) >= 0 ? 'new' : 'ghost';
+      case 'sc': return C_NEW.indexOf(id) >= 0 ? 'new' : 'on';
+      case 'sd': return ['alb', 'ctl1', 'ctl2'].indexOf(id) >= 0 ? 'hot' : 'on';
+      case 'sf': return ['app1', 'app2', 'ctl1', 'ctl2', 'sys1', 'alb'].indexOf(id) >= 0 ? 'hot' : 'on';
+      case 'sg': return 'gone';
+    }
+    return 'on';
+  }
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs, text) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text) e.textContent = text;
+    return e;
+  }
+  document.querySelectorAll('svg[data-stage]').forEach(function (svg) {
+    var stage = svg.getAttribute('data-stage');
+    svg.appendChild(el('rect', { class: 'frame', x: 130, y: 62, width: 426, height: 196, rx: 8 }));
+    svg.appendChild(el('text', { class: 'lbl', x: 140, y: 78 }, 'VPC: public subnets left, private right'));
+    // order matters: nodes before the pods drawn on them
+    ['laptop', 'git', 'iam', 'cp', 'alb', 'nat', 'n1', 'n2', 'n3', 'app1', 'app2', 'ctl1', 'ctl2', 'sys1', 'sys2'].forEach(function (id) {
+      var b = B[id], g = el('g', { class: st(stage, id) });
+      g.appendChild(el('rect', { class: b[4], x: b[0], y: b[1], width: b[2], height: b[3], rx: 6 }));
+      var cx = b[0] + b[2] / 2;
+      if (id === 'n1' || id === 'n2') {
+        g.appendChild(el('text', { class: 'hd', x: b[0] + 8, y: b[1] + 15 }, b[5]));
+      } else if (id === 'n3') {
+        g.appendChild(el('text', { class: 'hd', x: cx, y: b[1] + b[3] / 2 - 4, 'text-anchor': 'middle' }, '+1'));
+        g.appendChild(el('text', { class: 'lbl', x: cx, y: b[1] + b[3] / 2 + 10, 'text-anchor': 'middle' }, 'node'));
+      } else {
+        g.appendChild(el('text', { class: 'hd', x: cx, y: b[1] + (b[6] ? 15 : 22), 'text-anchor': 'middle' }, b[5]));
+        if (b[6]) g.appendChild(el('text', { class: 'lbl', x: cx, y: b[1] + 28, 'text-anchor': 'middle' }, b[6]));
+      }
+      svg.appendChild(g);
+    });
+  });
+
+  // Copy button on every command block
+  document.querySelectorAll('pre').forEach(function (pre) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = pre.querySelector('code').textContent;
+      var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1200); };
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () { btn.textContent = 'Select and copy'; });
+    });
+    pre.appendChild(btn);
+  });
+})();
+</script>
+</body>
+</html>
