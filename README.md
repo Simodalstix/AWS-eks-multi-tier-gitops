@@ -1,6 +1,6 @@
 # EKS with GitOps: Terraform and Argo CD
 
-[![Terraform](https://img.shields.io/badge/Terraform-1.6+-623CE4?logo=terraform)](https://www.terraform.io/)
+[![Terraform](https://img.shields.io/badge/Terraform-1.16-623CE4?logo=terraform)](https://www.terraform.io/)
 [![AWS](https://img.shields.io/badge/AWS-EKS-FF9900?logo=amazon-aws)](https://aws.amazon.com/eks/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Simodalstix/AWS-eks-multi-tier-gitops?include_prereleases)](https://github.com/Simodalstix/AWS-eks-multi-tier-gitops/releases)
@@ -55,7 +55,7 @@ Earlier diagram kept in diagrams/ for reference, not current.
 ## Prerequisites
 
 - AWS CLI with credentials for the target account
-- Terraform >= 1.0 (CI validates with 1.6.0)
+- Terraform >= 1.0 (CI validates with 1.16.6)
 - kubectl
 - Helm >= 3.0
 
