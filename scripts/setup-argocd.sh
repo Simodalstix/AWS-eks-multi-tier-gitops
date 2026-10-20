@@ -79,6 +79,10 @@ irsa_service_account aws-load-balancer-controller "$LBC_ROLE_ARN"
 # CRDs from the pinned chart; helm upgrade does not update a chart's crds/
 helm show crds eks/aws-load-balancer-controller --version "$LBC_CHART_VERSION" | kubectl apply -f -
 
+# keepTLSSecret: by default every upgrade generates a new webhook certificate
+# and CA bundle, but the running pods keep serving the old one, so a rerun of
+# this script breaks every Service create with "x509: certificate signed by
+# unknown authority".
 helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-controller \
   -n kube-system \
   --version "$LBC_CHART_VERSION" \
@@ -86,7 +90,13 @@ helm upgrade --install aws-load-balancer-controller eks/aws-load-balancer-contro
   --set region="$AWS_REGION" \
   --set vpcId="$VPC_ID" \
   --set serviceAccount.create=false \
-  --set serviceAccount.name=aws-load-balancer-controller
+  --set serviceAccount.name=aws-load-balancer-controller \
+  --set keepTLSSecret=true
+
+# The controller's webhooks intercept every Service and Ingress creation,
+# including the Services in the charts below. Before it has endpoints they fail
+# with "no endpoints available for service aws-load-balancer-webhook-service".
+kubectl -n kube-system rollout status deploy/aws-load-balancer-controller --timeout=180s
 
 # Install metrics-server (resource metrics for the HPA and kubectl top)
 echo "Installing metrics-server..."
@@ -117,11 +127,6 @@ kubectl -n monitoring get secret grafana-admin >/dev/null 2>&1 || \
   kubectl -n monitoring create secret generic grafana-admin \
     --from-literal=admin-user=admin \
     --from-literal=admin-password="$(head -c 24 /dev/urandom | base64 | tr -d '/+=')"
-
-# The controller's webhooks intercept Service and Ingress creation. Applying the
-# applications before it has endpoints fails with "no endpoints available for
-# service aws-load-balancer-webhook-service".
-kubectl -n kube-system rollout status deploy/aws-load-balancer-controller --timeout=180s
 
 # Apply Argo CD project and applications
 echo "Applying Argo CD project and applications..."
